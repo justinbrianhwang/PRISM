@@ -672,6 +672,83 @@ The four comparison figures live in
 [`twirl_qft3_x.*`](paper/summary/).  Each JSON config is a complete
 record of the underlying experiment and can be replayed on demand.
 
+### 6.7  QEC three-metric disagreement: where the choice of metric matters
+
+PRISM ships four quantum error-correcting codes
+([`PRISM/engine/qec.py`](PRISM/engine/qec.py)): the 3-qubit BitFlip
+code, the 3-qubit PhaseFlip code, the Steane $[[7,1,3]]$ code, and
+the Shor $[[9,1,3]]$ code (the latter introduced in PR #11 of this
+project).  All four expose the same two binary success metrics on the
+corrected state:
+
+* **F-success**:  the fidelity between the corrected and the ideal
+  codeword exceeds 0.5 -- the codeword has been "mostly recovered".
+* **Z-success**:  the sign of $\langle Z_L \rangle$ matches the
+  encoded logical bit -- the logical Z-projection is correct.
+
+These two metrics agree most of the time, but a non-trivial fraction
+of trials lands in a *disagreement* bin -- either F-success with
+Z-failure ("amplitude correct, phase wrong") or F-failure with
+Z-success ("phase correct, amplitude weak").  Quantifying that
+fraction across the code family is the contribution of this section.
+
+[`scripts/qec_disagreement.py`](scripts/qec_disagreement.py) sweeps
+each code across seven physical depolarizing rates from 0.01 to 0.30
+at $T = 200$ trials per rate, classifying every trial into one of
+four bins:
+
+* `both pass` (F+ Z+)  -- clean recovery.
+* `F only` (F+ Z-)    -- amplitude looks fine, logical phase has
+  flipped.
+* `Z only` (F- Z+)    -- logical phase is correct, amplitude is
+  degraded below 0.5.
+* `both fail` (F- Z-) -- clean failure.
+
+![Figure 10: Stacked-bar disagreement breakdown for the four QEC codes.](paper/summary/qec_disagreement.png)
+
+**Figure 10.**  Stacked-bar breakdown of QEC trial outcomes by
+F-vs-Z metric agreement, for the four codes shipped in PRISM.
+The eight bars per panel correspond to physical depolarizing rates
+$p \in \{0.01, 0.05, \ldots, 0.30\}$.  Green = both metrics pass,
+red = both fail, amber = F-only (amplitude-correct, phase-flipped),
+blue = Z-only (phase-correct, amplitude-degraded).  $T = 200$
+trials per rate; total compute time ~37 s.
+
+Three observations stand out:
+
+1. **The 3-qubit codes agree everywhere.**  BitFlip and PhaseFlip
+   show essentially zero disagreement bin: every trial either
+   succeeds on both metrics or fails on both.  Their simple
+   redundancy structure ties amplitude and phase recovery together.
+2. **Shor agrees too.**  Despite Shor's distance-3 status (it
+   corrects an arbitrary single-qubit error), its concatenated
+   bit-flip-on-phase-flip structure also produces near-zero
+   disagreement -- the inner codes fix amplitude and the outer code
+   fixes phase, in a way that keeps the two metrics in lock-step.
+3. **Steane shows substantial Z-only disagreement.**  The CSS
+   structure of the Steane code is the *only* one of the four where
+   F-failure-with-Z-success becomes the dominant trial outcome at
+   moderate-to-high noise: at $p = 0.30$ the Z-only blue bin reaches
+   43%, larger than the both-pass green bin (~12%) and comparable
+   to the both-fail red bin (~45%).
+
+The Steane finding has practical consequences for *which metric to
+report* in a Steane-code experiment.  At $p = 0.10$ the F-success
+rate is ~50% but the Z-success rate is ~70% -- choosing one over the
+other gives a 20 percentage-point swing in the headline number.  The
+underlying physics is that Steane's combined X/Z stabilisers can
+push the corrected state into a region of Hilbert space whose Z-axis
+projection is correct (Z-success holds) but whose pure-state overlap
+with the codeword has degraded below the 0.5 threshold (F-failure).
+Reporting both metrics, as PRISM does by default, sidesteps the
+issue.
+
+The full data is at
+[`paper/summary/qec_disagreement.csv`](paper/summary/qec_disagreement.csv)
+in tidy long form (one row per `(code, rate, bin)`), with the
+JSON metadata at
+[`paper/summary/qec_disagreement.json`](paper/summary/qec_disagreement.json).
+
 ---
 
 ## 7.  Discussion
@@ -772,12 +849,13 @@ new analysis stack:
    shipped in PR #8; the next PR adds twirled-attribution figures and
    a `--with-twirl` toggle to the replay CLI so the coherent-vs-twirled
    comparison joins the standard 32-figure suite.
-2. **Phase 2: QEC three-metric agreement analysis.**  PRISM's QEC
-   simulator already reports three logical-error metrics (fidelity,
-   logical $Z$ sign, projection); analysing where they *disagree*
-   reveals which physical-error patterns survive the code's correction
-   but flip the logical state.  The Shor $[[9,1,3]]$ code joins the
-   benchmark suite at the same time.
+2. **Phase 2: QEC three-metric agreement analysis** (Section 6.7,
+   shipped in PR #11).  Folding the F-success and Z-success metrics
+   into a four-way agreement table reveals that the *choice of
+   metric* matters most for the Steane code -- the only code in the
+   suite where F-only-failures and Z-only-failures occur at
+   non-trivial frequency.  The Shor $[[9,1,3]]$ code joins the
+   suite at the same time.
 3. **Phase 3 (optional).**  Classical shadows, Numba / pybind11 hot-
    path acceleration, and mirror randomized benchmarking are
    independent extensions chosen based on which would most strengthen

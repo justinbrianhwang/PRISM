@@ -50,6 +50,66 @@ class ThresholdPoint:
     projection_logical_rate: float = 0.0  # 1 - F(corrected, ideal_codeword)
 
 
+@dataclass
+class MetricAgreement:
+    """Per-error-rate breakdown of F-vs-Z metric agreement.
+
+    For each physical-error rate we run ``n_trials`` QEC cycles and
+    classify each outcome by the agreement of two binary metrics:
+
+    * **F-success** (``F_pass``): ``fidelity_after > 0.5``.  Reflects
+      whether the corrected state has a majority overlap with the
+      ideal codeword -- the standard "did the QEC cycle restore the
+      state?" question.
+    * **Z-success** (``Z_pass``): ``not logical_error_detected``, i.e.
+      the sign of ``<Z_L>`` matches the encoded logical bit.
+
+    Each trial therefore lands in one of four bins:
+
+    * ``n_both_pass``  -- F+ & Z+: clean recovery.
+    * ``n_both_fail``  -- F- & Z-: clean failure.
+    * ``n_f_only``     -- F+ & Z-: amplitude looks correct but the
+      logical phase has flipped.  This is the classic "decoder
+      thinks success but actually wrong code-state" failure mode.
+    * ``n_z_only``     -- F- & Z+: phase recovers but amplitude is
+      degraded.  Tends to indicate a partial-correction state where
+      the corrected state mixes with the wrong logical state but the
+      Z-projection still favours the right sign.
+
+    The interesting *paper claim* is that for high-distance codes
+    (Steane, Shor) the disagreement bins (``n_f_only`` and
+    ``n_z_only``) shrink relative to lower-distance codes
+    (BitFlip, PhaseFlip), reflecting the higher codes' tighter
+    coupling between amplitude and phase recovery.
+    """
+
+    physical_rate: float
+    n_trials: int
+    n_both_pass: int
+    n_both_fail: int
+    n_f_only: int
+    n_z_only: int
+
+    @property
+    def fraction_disagreement(self) -> float:
+        """Fraction of trials where F-success and Z-success disagree."""
+        if self.n_trials == 0:
+            return 0.0
+        return (self.n_f_only + self.n_z_only) / self.n_trials
+
+    @property
+    def fraction_both_pass(self) -> float:
+        if self.n_trials == 0:
+            return 0.0
+        return self.n_both_pass / self.n_trials
+
+    @property
+    def fraction_both_fail(self) -> float:
+        if self.n_trials == 0:
+            return 0.0
+        return self.n_both_fail / self.n_trials
+
+
 class QECCode(ABC):
     """Abstract base for quantum error correcting codes."""
 
@@ -447,6 +507,232 @@ class SteaneCode(QECCode):
         return [0, 1, 2, 3, 4, 5, 6]
 
 
+# ---- Shor [[9,1,3]] -------------------------------------------------------
+
+
+class Shor9Code(QECCode):
+    """Shor's [[9,1,3]] CSS code.
+
+    Concatenation of an outer phase-flip code with three inner bit-flip
+    codes -- the first quantum error-correcting code able to correct an
+    *arbitrary* single-qubit Pauli error (X, Y, or Z).
+
+    Codeword form (Nielsen & Chuang Box 10.5)::
+
+        |0>_L = (1/2 sqrt 2) (|000> + |111>)(|000> + |111>)(|000> + |111>)
+        |1>_L = (1/2 sqrt 2) (|000> - |111>)(|000> - |111>)(|000> - |111>)
+
+    9 data qubits, no ancilla -- syndrome bits are computed directly
+    from the state vector via the same Z-parity / H-conjugated-Z-parity
+    trick used by SteaneCode, so we stay well under the 16-qubit limit
+    of PRISM's state-vector engine.
+
+    Stabiliser group (8 generators, 9 - 1 = 8 stabiliser dimension for
+    a single-logical-qubit code):
+
+    * Six Z-type within-block parity checks (inner bit-flip code):
+      ``Z_0 Z_1, Z_1 Z_2`` for block 1, ``Z_3 Z_4, Z_4 Z_5`` for block
+      2, ``Z_6 Z_7, Z_7 Z_8`` for block 3.
+    * Two X-type between-block parity checks (outer phase-flip code):
+      ``X_0 X_1 X_2 X_3 X_4 X_5`` and ``X_3 X_4 X_5 X_6 X_7 X_8``.
+
+    Logical operators:
+
+    * ``Z_L = X_0 X_1 X_2`` (X on every qubit of the first block).  This
+      is *not* a tensor of Z operators, so the standard
+      :pymeth:`QECCode.logical_z_expectation` -- which only handles
+      Z-tensor logical operators -- is overridden below to apply
+      Hadamards on the support of ``Z_L`` before computing the Z-parity
+      expectation.
+    * ``X_L = Z_0 Z_3 Z_6`` (one Z per block).
+    """
+
+    # Pairs of qubits whose Z-parity gives the within-block bit-flip
+    # syndromes.  Indexed (left, middle), (middle, right) per block.
+    _Z_PARITY_CHECKS = [
+        (0, 1), (1, 2),  # block 1
+        (3, 4), (4, 5),  # block 2
+        (6, 7), (7, 8),  # block 3
+    ]
+
+    # The two between-block X-stabilisers, listed as the qubits each
+    # acts on (X on every qubit in the list).
+    _X_PARITY_CHECKS = [
+        [0, 1, 2, 3, 4, 5],
+        [3, 4, 5, 6, 7, 8],
+    ]
+
+    @property
+    def name(self) -> str:
+        return "Shor [[9,1,3]]"
+
+    @property
+    def data_qubits(self) -> int:
+        return 9
+
+    @property
+    def ancilla_qubits(self) -> int:
+        # We compute syndromes from the state vector directly, so no
+        # ancillas are reserved.  This keeps the total qubit count at
+        # 9 (well under the 16-qubit ceiling).
+        return 0
+
+    @property
+    def code_distance(self) -> int:
+        return 3
+
+    def encode(self, logical_state: int) -> StateVector:
+        """Construct the codeword state vector directly.
+
+        For ``|0>_L`` the eight ``(|000> + |111>)^{otimes 3}`` terms all
+        carry amplitude ``+1 / sqrt(8)``.  For ``|1>_L`` the same eight
+        basis states get a sign of ``(-1)^{# blocks in the 111 branch}``,
+        which is exactly the parity of the bit count divided by 3 within
+        each block.
+        """
+        n = 9
+        amps = np.zeros(2 ** n, dtype=np.complex128)
+        amp = 1.0 / np.sqrt(8.0)
+
+        # Each of the eight terms picks block-1, block-2, block-3 to be
+        # either |000> (b=0) or |111> (b=1).  We enumerate via three
+        # bits (b1, b2, b3).
+        for b1 in (0, 1):
+            for b2 in (0, 1):
+                for b3 in (0, 1):
+                    idx = 0
+                    # Block 1 occupies q0, q1, q2 (MSB convention).
+                    if b1:
+                        idx |= (1 << (n - 1 - 0)) | (1 << (n - 1 - 1)) | (1 << (n - 1 - 2))
+                    if b2:
+                        idx |= (1 << (n - 1 - 3)) | (1 << (n - 1 - 4)) | (1 << (n - 1 - 5))
+                    if b3:
+                        idx |= (1 << (n - 1 - 6)) | (1 << (n - 1 - 7)) | (1 << (n - 1 - 8))
+
+                    if logical_state == 0:
+                        sign = +1.0
+                    else:
+                        # |1>_L: each block in the |111> branch
+                        # contributes a factor of -1.
+                        sign = (-1.0) ** (b1 + b2 + b3)
+                    amps[idx] += sign * amp
+
+        sv = StateVector(n)
+        sv.data = amps
+        return sv
+
+    def extract_syndrome(
+        self, state: StateVector, rng: np.random.Generator,
+    ) -> list[int]:
+        """Return the 8-bit Shor syndrome.
+
+        Bytes 0-5: within-block ``Z_a Z_b`` parities (X-error
+        detection), in the order
+        ``(Z_0 Z_1, Z_1 Z_2, Z_3 Z_4, Z_4 Z_5, Z_6 Z_7, Z_7 Z_8)``.
+
+        Bytes 6-7: between-block X-parities (Z-error detection).  These
+        are computed by Hadamard-conjugating the state on the
+        appropriate qubit support and then reading a Z-parity.
+        """
+        from .gates import H_MATRIX
+
+        z_syn = [
+            _compute_z_parity(state, [a, b])
+            for a, b in self._Z_PARITY_CHECKS
+        ]
+
+        x_syn: list[int] = []
+        for support in self._X_PARITY_CHECKS:
+            rotated = state.copy()
+            for q in support:
+                rotated.apply_gate(H_MATRIX, [q])
+            x_syn.append(_compute_z_parity(rotated, support))
+
+        return z_syn + x_syn
+
+    def decode_syndrome(
+        self, syndrome: list[int],
+    ) -> list[tuple[str, int]]:
+        """Map the 8-bit syndrome to a list of corrections.
+
+        Within-block decoding (3-qubit bit-flip pattern):
+
+        * ``(0, 0)`` no error
+        * ``(1, 0)`` X on the leftmost qubit of the block
+        * ``(1, 1)`` X on the middle qubit
+        * ``(0, 1)`` X on the rightmost qubit
+
+        Between-block decoding identifies which block has a Z error
+        and applies Z to the *first* qubit of that block; this is
+        equivalent (modulo within-block Z-stabilisers) to applying Z
+        anywhere in the block.
+        """
+        corrections: list[tuple[str, int]] = []
+
+        # Within-block X corrections (3 blocks).
+        for blk in range(3):
+            s_left, s_right = syndrome[2 * blk], syndrome[2 * blk + 1]
+            base = 3 * blk  # leftmost qubit index of this block
+            if s_left == 0 and s_right == 0:
+                continue
+            if s_left == 1 and s_right == 0:
+                corrections.append(("X", base))
+            elif s_left == 1 and s_right == 1:
+                corrections.append(("X", base + 1))
+            elif s_left == 0 and s_right == 1:
+                corrections.append(("X", base + 2))
+
+        # Between-block Z correction (4 patterns).
+        x1, x2 = syndrome[6], syndrome[7]
+        if x1 == 1 and x2 == 0:
+            corrections.append(("Z", 0))   # block 1
+        elif x1 == 1 and x2 == 1:
+            corrections.append(("Z", 3))   # block 2
+        elif x1 == 0 and x2 == 1:
+            corrections.append(("Z", 6))   # block 3
+        # (0, 0) -> no Z error.
+
+        return corrections
+
+    def logical_fidelity(
+        self, state: StateVector, logical_state: int,
+    ) -> float:
+        ideal = self.encode(logical_state)
+        return StateAnalysis.state_fidelity(ideal.data, state.data)
+
+    def logical_z_operators(self) -> list[int]:
+        # The Shor logical Z operator is X_0 X_1 X_2 (an X-tensor on
+        # the first block), *not* a Z-tensor.  We report the support
+        # for display and override ``logical_z_expectation`` below to
+        # compute the actual expectation value in the X basis.
+        return [0, 1, 2]
+
+    def logical_z_expectation(self, state: StateVector) -> float:
+        """``<Z_L> = <X_0 X_1 X_2>``.
+
+        We rotate the support of ``Z_L`` into the Z basis with a
+        Hadamard on every qubit of the first block, then reuse the
+        standard Z-parity expectation formula on the rotated state.
+        """
+        from .gates import H_MATRIX
+
+        rotated = state.copy()
+        for q in (0, 1, 2):
+            rotated.apply_gate(H_MATRIX, [q])
+
+        n = rotated.num_qubits
+        probs = rotated.probabilities
+        expectation = 0.0
+        for idx in range(len(probs)):
+            parity = 0
+            for q in (0, 1, 2):
+                bit_pos = n - 1 - q
+                parity ^= (idx >> bit_pos) & 1
+            sign = 1.0 if parity == 0 else -1.0
+            expectation += sign * probs[idx]
+        return float(expectation)
+
+
 # ---- Helper functions -----------------------------------------------------
 
 def _extract_parity_syndrome(
@@ -666,6 +952,79 @@ class QECSimulator:
             "n_trials": n_trials,
         }
 
+    def analyze_metric_agreement(
+        self,
+        physical_rates: list[float],
+        n_trials: int = 200,
+        noise_type: str = "depolarizing",
+        seed: int | None = None,
+    ) -> list[MetricAgreement]:
+        """Per-rate 4-way breakdown of F-success vs Z-success agreement.
+
+        For each ``physical_rate`` we run ``n_trials`` independent QEC
+        cycles, classify the outcome by the two binary metrics
+        (F-success: ``fidelity_after > 0.5``; Z-success: not
+        ``logical_error_detected``), and tally the four agreement bins
+        described in :class:`MetricAgreement`.
+
+        Used by :file:`scripts/qec_disagreement.py` to produce the
+        stacked-bar figure that compares disagreement profiles across
+        codes -- the higher-distance codes (Steane, Shor) are
+        expected to show a smaller disagreement fraction at any given
+        physical error rate.
+
+        Args:
+            physical_rates: Sequence of physical error probabilities
+                spanning the regime of interest (typically
+                ``[0.01, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30]``).
+            n_trials: Number of trials per rate.  Defaults to 200,
+                comfortably above the Monte Carlo noise floor for the
+                4-way binning.
+            noise_type: ``"bit_flip"``, ``"phase_flip"`` or
+                ``"depolarizing"``.
+            seed: Master seed; per-trial seeds derive from it.
+
+        Returns:
+            One :class:`MetricAgreement` per rate, in the same order
+            as ``physical_rates``.
+        """
+        rng = np.random.default_rng(seed)
+        breakdowns: list[MetricAgreement] = []
+
+        for p in physical_rates:
+            n_both_pass = n_both_fail = n_f_only = n_z_only = 0
+            for trial in range(n_trials):
+                trial_seed = int(rng.integers(0, 2**63))
+                logical = trial % 2  # alternate |0> and |1>
+                result = self.run_cycle(
+                    logical_state=logical,
+                    noise_type=noise_type,
+                    noise_prob=p,
+                    seed=trial_seed,
+                )
+                f_pass = result.fidelity_after > 0.5
+                z_pass = not result.logical_error_detected
+
+                if f_pass and z_pass:
+                    n_both_pass += 1
+                elif (not f_pass) and (not z_pass):
+                    n_both_fail += 1
+                elif f_pass:
+                    n_f_only += 1
+                else:
+                    n_z_only += 1
+
+            breakdowns.append(MetricAgreement(
+                physical_rate=p,
+                n_trials=n_trials,
+                n_both_pass=n_both_pass,
+                n_both_fail=n_both_fail,
+                n_f_only=n_f_only,
+                n_z_only=n_z_only,
+            ))
+
+        return breakdowns
+
     def _apply_noise(
         self,
         state: StateVector,
@@ -698,4 +1057,5 @@ AVAILABLE_CODES = {
     "Bit-Flip [3,1,1]": BitFlipCode,
     "Phase-Flip [3,1,1]": PhaseFlipCode,
     "Steane [[7,1,3]]": SteaneCode,
+    "Shor [[9,1,3]]": Shor9Code,
 }

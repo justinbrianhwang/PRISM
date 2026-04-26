@@ -15,7 +15,7 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
     QSlider, QTabWidget, QTableWidget, QTableWidgetItem,
-    QHeaderView, QSpinBox, QGroupBox, QScrollArea,
+    QHeaderView, QSpinBox, QGroupBox, QScrollArea, QCheckBox,
 )
 from PyQt6.QtGui import QColor, QFont
 
@@ -102,6 +102,31 @@ class DebuggerPanel(QWidget):
         self._trials_spin.setValue(50)
         self._trials_spin.setToolTip("Noise impact averaging trials")
         ctrl_layout.addWidget(self._trials_spin)
+
+        # Statistics toggle.  When checked, Run Debug calls
+        # ``compute_noise_attribution_with_statistics`` so the heatmap
+        # overlay and the summary text gain bootstrap CIs, two-sided
+        # p-values, and BH-FDR corrected significance markers.
+        self._chk_show_stats = QCheckBox("Statistics")
+        self._chk_show_stats.setToolTip(
+            "Run the bootstrap-aware attribution: per-column 95% CI, "
+            "two-sided p-values, BH-FDR significance markers."
+        )
+        self._chk_show_stats.toggled.connect(self._on_stats_toggled)
+        ctrl_layout.addWidget(self._chk_show_stats)
+
+        self._lbl_bootstrap = QLabel("Bootstrap:")
+        self._lbl_bootstrap.setVisible(False)
+        ctrl_layout.addWidget(self._lbl_bootstrap)
+        self._bootstrap_spin = QSpinBox()
+        self._bootstrap_spin.setRange(100, 5000)
+        self._bootstrap_spin.setSingleStep(100)
+        self._bootstrap_spin.setValue(500)
+        self._bootstrap_spin.setToolTip(
+            "Number of bootstrap resamples for the statistics mode"
+        )
+        self._bootstrap_spin.setVisible(False)
+        ctrl_layout.addWidget(self._bootstrap_spin)
 
         self._btn_debug = QPushButton("Run Debug")
         self._btn_debug.setToolTip("Execute full debug analysis")
@@ -258,6 +283,13 @@ class DebuggerPanel(QWidget):
 
     # ---- Button handlers --------------------------------------------------
 
+    def _on_stats_toggled(self, checked: bool) -> None:
+        """Show / hide the bootstrap-N spinbox alongside the statistics
+        checkbox.  No simulation is triggered -- the user still needs
+        to press Run Debug for the new mode to take effect."""
+        self._lbl_bootstrap.setVisible(checked)
+        self._bootstrap_spin.setVisible(checked)
+
     def _on_run_debug(self):
         if self._circuit is None:
             return
@@ -278,12 +310,27 @@ class DebuggerPanel(QWidget):
                 n_trials=n_trials,
                 seed=seed,
             )
-            self._attribution = self._debugger.compute_noise_attribution(
-                self._circuit,
-                self._noise_model,
-                n_trials=n_trials,
-                seed=seed,
-            )
+            if self._chk_show_stats.isChecked():
+                # Bootstrap-aware attribution -- gives CI errorbars,
+                # p-values, and BH-FDR significance flags.  Slower than
+                # the cheap method by roughly the bootstrap factor
+                # (n_bootstrap matrix resamples on top of the trials).
+                self._attribution = (
+                    self._debugger.compute_noise_attribution_with_statistics(
+                        self._circuit,
+                        self._noise_model,
+                        n_trials=n_trials,
+                        n_bootstrap=self._bootstrap_spin.value(),
+                        seed=seed,
+                    )
+                )
+            else:
+                self._attribution = self._debugger.compute_noise_attribution(
+                    self._circuit,
+                    self._noise_model,
+                    n_trials=n_trials,
+                    seed=seed,
+                )
         else:
             self._noise_results = []
             self._attribution = None
@@ -530,20 +577,54 @@ class DebuggerPanel(QWidget):
         ax.set_ylabel("Qubit", fontsize=9)
         ax.set_title("Per-Qubit Fidelity Drop (1 - F)", fontsize=10)
 
-        # Overlay attribution percentages if available
+        # Overlay attribution percentages above each column.  When the
+        # attribution carries an :class:`AttributionStatistics` block
+        # the labels also show the BH-FDR significance star (or a
+        # caret for recovery columns) so the user can read the same
+        # information from the panel that the paper figures convey.
         if self._attribution is not None:
+            attr = self._attribution
+            stats = attr.statistics
             for c in range(num_cols):
-                pct = self._attribution.column_attribution_pct[c]
-                # Place attribution % above the heatmap columns
+                pct = attr.column_attribution_pct[c]
+                # Star for significant non-recovery, ^ for recovery
+                marker = ""
+                if attr.is_recovery[c]:
+                    marker = "^"
+                    colour = "#F59E0B"  # amber
+                elif stats is not None and stats.column_significant[c]:
+                    q = stats.delta_fidelity_q_value[c]
+                    if q <= 0.001:
+                        marker = "***"
+                    elif q <= 0.01:
+                        marker = "**"
+                    else:
+                        marker = "*"
+                    colour = "#FF6644" if pct > 20 else (
+                        "#89B4FA" if self._dark_theme else "#1E66F5"
+                    )
+                else:
+                    colour = "#FF6644" if pct > 20 else (
+                        "#CCCCCC" if self._dark_theme else "#333333"
+                    )
+
+                if stats is not None:
+                    lo = stats.attribution_pct_ci_lower[c]
+                    hi = stats.attribution_pct_ci_upper[c]
+                    # Two-line label so the CI does not collide with
+                    # the bar labels below the heatmap.
+                    text = f"{pct:.1f}%{marker}\n[{lo:.0f}, {hi:.0f}]"
+                else:
+                    text = f"{pct:.1f}%{marker}"
+
                 ax.text(
-                    c, -0.6, f"{pct:.1f}%",
+                    c, -0.7, text,
                     ha="center", va="center", fontsize=7,
                     fontweight="bold",
-                    color="#FF6644" if pct > 20 else (
-                        "#CCCCCC" if self._dark_theme else "#333333"
-                    ),
+                    color=colour,
                 )
-            ax.set_ylim(num_qubits - 0.5, -1.0)
+            # Reserve more vertical room when CI bounds are present.
+            ax.set_ylim(num_qubits - 0.5, -1.4 if stats is not None else -1.0)
 
         fig.colorbar(im, ax=ax, shrink=0.8, label="Fidelity Drop")
 
@@ -622,13 +703,29 @@ class DebuggerPanel(QWidget):
         self._trace_canvas.draw_idle()
 
     def _update_attribution_summary(self):
-        """Update the attribution summary label below the heatmap."""
+        """Update the attribution summary label below the heatmap.
+
+        When statistics are attached to the attribution, the summary
+        promotes p-values and BH-FDR q-values into the per-column
+        listing and reports the overall count of significant columns.
+        """
         if self._attribution is None:
             self._attr_label.setText("")
             return
 
         attr = self._attribution
+        stats = attr.statistics
         lines = [f"Total fidelity loss: {attr.total_fidelity_loss:.4f}"]
+
+        if stats is not None:
+            n_sig = sum(stats.column_significant)
+            n_total = len(stats.column_significant)
+            lines.append(
+                f"Bootstrap n_trials={stats.n_trials}  "
+                f"n_bootstrap={stats.n_bootstrap}  "
+                f"FDR={stats.fdr_level:.2f}: "
+                f"{n_sig}/{n_total} columns significant."
+            )
 
         if attr.no_measurable_loss:
             lines.append("No measurable fidelity loss (noise too low or noiseless).")
@@ -643,11 +740,20 @@ class DebuggerPanel(QWidget):
                 labels = attr.gate_labels[col_idx]
                 gate_str = ", ".join(labels) if labels else f"Col {col_idx}"
                 df = attr.delta_fidelity[col_idx]
-                std = attr.delta_fidelity_std[col_idx]
-                lines.append(
-                    f"  Col {col_idx} ({gate_str}): "
-                    f"{pct:.1f}% (dF={df:.4f} +/- {std:.4f})"
-                )
+                if stats is not None:
+                    p = stats.delta_fidelity_p_value[col_idx]
+                    q = stats.delta_fidelity_q_value[col_idx]
+                    sig = " [significant]" if stats.column_significant[col_idx] else ""
+                    lines.append(
+                        f"  Col {col_idx} ({gate_str}): "
+                        f"{pct:.1f}% (dF={df:.4f}, p={p:.3g}, q={q:.3g}){sig}"
+                    )
+                else:
+                    std = attr.delta_fidelity_std[col_idx]
+                    lines.append(
+                        f"  Col {col_idx} ({gate_str}): "
+                        f"{pct:.1f}% (dF={df:.4f} +/- {std:.4f})"
+                    )
 
         self._attr_label.setText("\n".join(lines))
 

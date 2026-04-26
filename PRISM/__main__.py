@@ -13,13 +13,21 @@ from __future__ import annotations
 
 import sys
 import warnings
+from pathlib import Path
 
 from PyQt6.QtCore import QtMsgType, qInstallMessageHandler
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
 from PRISM.core.config import AppConfig
 from PRISM.gui.main_window import MainWindow
 from PRISM.gui.themes.theme_manager import ThemeManager
+
+
+# Repo-root ``assets/Logo_modify.png`` -- bundled with the source tree.
+# Used as the QApplication-wide window icon so it appears in the title
+# bar and OS task switcher.
+_LOGO_PATH = Path(__file__).resolve().parent.parent / "assets" / "Logo_modify.png"
 
 
 # Qt warnings we know to be benign (font sizing on high-DPI Windows).
@@ -51,6 +59,11 @@ def main() -> int:
     app.setApplicationName("PRISM")
     app.setOrganizationName("PRISM")
     app.setApplicationVersion("1.0.0")
+
+    # Set the project logo as the app-wide window icon.  Silently no-op
+    # if the file is missing (e.g. running tests off a partial checkout).
+    if _LOGO_PATH.exists():
+        app.setWindowIcon(QIcon(str(_LOGO_PATH)))
 
     config = AppConfig.load()
     theme_mgr = ThemeManager(app)

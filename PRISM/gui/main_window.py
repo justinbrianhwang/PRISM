@@ -2072,22 +2072,29 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
 
     def _on_about(self):
-        """Show the About dialog."""
-        QMessageBox.about(
-            self, "About PRISM",
+        """Show the About dialog with the project logo."""
+        from pathlib import Path
+
+        from PyQt6.QtCore import Qt
+        from PyQt6.QtGui import QPixmap
+
+        body = (
             "<h2>PRISM</h2>"
-            "<p>A research-grade visual quantum circuit simulator built with PyQt6.</p>"
+            "<p>A research-grade visual quantum circuit simulator "
+            "built with PyQt6.</p>"
             "<p><b>Core Features:</b></p>"
             "<ul>"
             "<li>Drag-and-drop circuit editor (1-16 qubits)</li>"
             "<li>State vector, Bloch sphere, histogram, density matrix</li>"
             "<li>Step-by-step simulation with trajectory tracking</li>"
-            "<li>Noise models (bit-flip, phase-flip, depolarizing, amplitude damping)</li>"
+            "<li>Noise models (bit-flip, phase-flip, depolarizing, "
+            "amplitude damping)</li>"
             "<li>Built-in quantum algorithm templates</li>"
             "</ul>"
             "<p><b>Research Features:</b></p>"
             "<ul>"
-            "<li>Quantitative analysis: fidelity, entropy, purity, concurrence</li>"
+            "<li>Quantitative analysis: fidelity, entropy, purity, "
+            "concurrence</li>"
             "<li>Entanglement graph visualization</li>"
             "<li>Entropy evolution tracking</li>"
             "<li>Fidelity decay sweep analysis</li>"
@@ -2096,6 +2103,31 @@ class MainWindow(QMainWindow):
             "<li>Live Bridge API for external script connectivity</li>"
             "</ul>"
         )
+
+        # Custom QMessageBox so we can attach the project logo via
+        # ``setIconPixmap`` -- ``QMessageBox.about`` only accepts a
+        # built-in icon enum.  Falls back to a logo-less dialog if the
+        # PNG is missing.
+        box = QMessageBox(self)
+        box.setWindowTitle("About PRISM")
+        box.setTextFormat(Qt.TextFormat.RichText)
+        box.setText(body)
+
+        logo_path = (
+            Path(__file__).resolve().parent.parent.parent
+            / "assets" / "Logo_modify.png"
+        )
+        if logo_path.exists():
+            pixmap = QPixmap(str(logo_path))
+            if not pixmap.isNull():
+                scaled = pixmap.scaled(
+                    96, 96,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+                box.setIconPixmap(scaled)
+
+        box.exec()
 
     # ------------------------------------------------------------------
     # Close event

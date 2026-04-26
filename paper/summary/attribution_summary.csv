@@ -1,0 +1,33 @@
+circuit,noise,n_columns,n_significant,n_recovery,total_fidelity_loss,max_attribution_pct,max_attribution_label,mean_recovery_rate
+bell,depolarizing,2,2,0,0.2000,66.67,"CNOT(0,1)",0.008
+bell,bit_flip,2,2,0,0.0833,100.00,"CNOT(0,1)",0.000
+bell,phase_flip,2,2,0,0.1250,53.33,H(0),0.000
+bell,amp_damping,2,2,0,0.0639,80.18,"CNOT(0,1)",0.000
+ghz3,depolarizing,3,3,0,0.2667,46.88,"CNOT(1,2)",0.000
+ghz3,bit_flip,3,3,0,0.2083,52.00,"CNOT(1,2)",0.000
+ghz3,phase_flip,3,1,0,0.1667,60.00,"CNOT(1,2)",0.003
+ghz3,amp_damping,3,0,0,0.0746,58.99,"CNOT(1,2)",0.000
+ghz4,depolarizing,4,3,0,0.2833,44.12,"CNOT(0,1)",0.002
+ghz4,bit_flip,4,4,0,0.2417,34.48,"CNOT(0,1)",0.000
+ghz4,phase_flip,4,3,0,0.2750,36.36,"CNOT(1,2)",0.010
+ghz4,amp_damping,4,3,0,0.1732,39.75,"CNOT(1,2)",0.000
+qft3,depolarizing,7,0,0,0.2000,33.33,H(1),0.000
+qft3,bit_flip,7,5,0,0.1583,47.37,Phase(2),0.000
+qft3,phase_flip,7,3,0,0.2250,55.56,"SWAP(0,2)",0.000
+qft3,amp_damping,7,1,0,0.0389,45.21,"SWAP(0,2)",0.000
+qft4,depolarizing,12,0,0,0.4000,12.50,Phase(1),0.001
+qft4,bit_flip,12,5,0,0.3167,21.05,Phase(1),0.001
+qft4,phase_flip,12,1,0,0.3167,42.11,"SWAP(0,3)",0.001
+qft4,amp_damping,12,2,0,0.0898,24.17,"SWAP(0,3)",0.000
+qaoa_maxcut,depolarizing,8,6,0,0.6654,20.00,"CNOT(1,2) + CNOT(3,0)",0.016
+qaoa_maxcut,bit_flip,8,7,0,0.6834,28.52,"CNOT(0,1) + CNOT(2,3)",0.005
+qaoa_maxcut,phase_flip,8,5,0,0.6919,25.29,H(0) + H(1) + H(2) + H(3),0.008
+qaoa_maxcut,amp_damping,8,6,0,0.3487,17.65,"CNOT(0,1) + CNOT(2,3)",0.043
+bit_flip_encoder,depolarizing,2,1,0,0.0750,88.89,"CNOT(0,1)",0.000
+bit_flip_encoder,bit_flip,2,2,0,0.2083,60.00,"CNOT(0,2)",0.000
+bit_flip_encoder,phase_flip,2,0,0,0.0000,0.00,"CNOT(0,1)",0.000
+bit_flip_encoder,amp_damping,2,0,0,0.0000,0.00,"CNOT(0,1)",0.000
+bernstein_vazirani_3,depolarizing,5,2,0,0.3250,48.72,H(0) + H(1) + H(2) + H(3),0.000
+bernstein_vazirani_3,bit_flip,5,3,0,0.2250,66.67,H(0) + H(1) + H(2),0.000
+bernstein_vazirani_3,phase_flip,5,4,0,0.3167,50.00,H(0) + H(1) + H(2) + H(3),0.003
+bernstein_vazirani_3,amp_damping,5,5,0,0.2245,25.31,H(0) + H(1) + H(2) + H(3),0.032

@@ -1,0 +1,14 @@
+# Development / test dependencies for PRISM.
+# Install with: pip install -r requirements-dev.txt
+#
+# Runtime dependencies are tracked separately in requirements.txt and
+# remain GUI/engine-only (PyQt6, numpy, matplotlib).
+
+-r requirements.txt
+
+# Test runner + coverage
+pytest>=7.4
+pytest-cov>=4.1
+
+# Static type checking (Phase 1B will gate CI on this)
+pyright>=1.1.350

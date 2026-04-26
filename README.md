@@ -50,7 +50,10 @@ The screenshot below is one of the figures the paper pipeline emits -- an attrib
 ---
 
 ## GUI Overview
-<img width="1919" height="1006" alt="image" src="https://github.com/user-attachments/assets/a47f16c9-fea4-4494-b7de-68ae5ce8cd3a" />
+
+The screenshot below was captured with `File -> Export Window...` directly from PRISM, so the rendering is independent of the user's screen DPI and stays sharp at any zoom. The matching vector PDF lives at [assets/gui/GUI.pdf](assets/gui/GUI.pdf) for paper inclusion.
+
+![PRISM main window showing a GHZ-3 circuit with the State Vector panel](assets/gui/GUI.png)
 
 ---
 

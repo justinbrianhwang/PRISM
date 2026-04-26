@@ -1,5 +1,7 @@
 # PRISM
 
+[![tests](https://github.com/justinbrianhwang/PRISM/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/justinbrianhwang/PRISM/actions/workflows/test.yml)
+
 > **P**er-gate **R**eproducible **I**nference for **S**tochastic **M**echanics
 
 A research-grade quantum circuit simulator with **statistically rigorous noise attribution**, an interactive 13-panel GUI, and a fully reproducible experiment-replay pipeline.
@@ -382,7 +384,7 @@ PRISM is being developed toward an arXiv preprint. The work is organized into th
   - 1B: pytest migration, GitHub Actions CI, headless replay CLI, paper directory
     - Headless replay CLI -- **shipped** (`PRISM/replay.py`, `python -m PRISM.replay`)
     - 5 benchmark x 3 noise figure suite -- **shipped** (`paper/figures/`, `paper/experiments/`)
-    - GitHub Actions CI -- pending
+    - GitHub Actions CI -- **shipped** (Python 3.10/3.11/3.12 matrix on Linux, with coverage upload)
 - **Phase 2 -- Pauli twirling + QEC three-metric agreement analysis**
 - **Phase 3 (optional)** -- Classical shadows / Numba hot-path / Mirror RB (one of)
 

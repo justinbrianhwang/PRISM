@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "kind": "twirling_comparison",
+  "slug": "qaoa_maxcut_z",
+  "circuit": "qaoa_maxcut",
+  "noise": {
+    "type": "CoherentOverRotationNoise",
+    "axis": "Z",
+    "angle": 0.2
+  },
+  "params": {
+    "n_trials": 120,
+    "n_bootstrap": 1000,
+    "seed": 20260429
+  },
+  "summary": {
+    "untwirled": {
+      "n_significant": 8,
+      "max_attribution_pct": 21.96324708326222,
+      "max_delta_F_std": 4.163336342344337e-16,
+      "total_fidelity_loss": 0.6322011861692278
+    },
+    "twirled": {
+      "n_significant": 8,
+      "max_attribution_pct": 16.17788405145628,
+      "max_delta_F_std": 0.05562099052119287,
+      "total_fidelity_loss": 0.2552593199709374
+    }
+  }
+}

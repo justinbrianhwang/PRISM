@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "kind": "twirling_comparison",
+  "slug": "bell_z",
+  "circuit": "bell",
+  "noise": {
+    "type": "CoherentOverRotationNoise",
+    "axis": "Z",
+    "angle": 0.3
+  },
+  "params": {
+    "n_trials": 120,
+    "n_bootstrap": 1000,
+    "seed": 20260629
+  },
+  "summary": {
+    "untwirled": {
+      "n_significant": 2,
+      "max_attribution_pct": 88.19643565390147,
+      "max_delta_F_std": 5.204170427930421e-17,
+      "total_fidelity_loss": 0.18919501586466786
+    },
+    "twirled": {
+      "n_significant": 2,
+      "max_attribution_pct": 57.803589352508546,
+      "max_delta_F_std": 0.06456599638221587,
+      "total_fidelity_loss": 0.05292335318223328
+    }
+  }
+}

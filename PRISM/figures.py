@@ -347,6 +347,95 @@ def attribution_summary_figure(
     return fig
 
 
+def attribution_comparison_figure(
+    attr_top: "NoiseAttribution",
+    attr_bottom: "NoiseAttribution",
+    title_top: str = "",
+    title_bottom: str = "",
+    palette: AttributionPalette = DEFAULT_PALETTE,
+    figsize: tuple[float, float] = (10.0, 7.0),
+) -> "Figure":
+    """Stacked two-row attribution comparison figure.
+
+    Designed for the Pauli-twirling paper figures: the same circuit /
+    noise pair appears twice -- ``attr_top`` (typically the untwirled
+    attribution) above ``attr_bottom`` (typically the twirled
+    attribution).  Both panels share the column axis so the reader can
+    compare attribution percentages and significance flags column by
+    column.
+
+    Layout
+    ------
+    Row 1: attribution % bar chart (untwirled by convention).
+    Row 2: attribution % bar chart (twirled by convention).
+
+    Both rows share an identical x-axis; the per-column gate labels
+    appear only on the bottom row to reduce clutter.  Each row carries
+    its own significance stars and CI errorbars from its own
+    :class:`AttributionStatistics`.
+
+    Parameters
+    ----------
+    attr_top, attr_bottom : NoiseAttribution
+        The two attributions being compared.  They must have the same
+        number of columns; otherwise the side-by-side comparison is
+        meaningless.
+    title_top, title_bottom : str
+        Per-row titles rendered above each axis (e.g. "Untwirled
+        coherent over-rotation" / "Pauli-twirled").
+    palette : AttributionPalette
+    figsize : tuple[float, float]
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
+    if len(attr_top.delta_fidelity) != len(attr_bottom.delta_fidelity):
+        raise ValueError(
+            "attr_top and attr_bottom must have the same number of columns "
+            f"({len(attr_top.delta_fidelity)} vs "
+            f"{len(attr_bottom.delta_fidelity)})"
+        )
+
+    fig, (ax_top, ax_bot) = plt.subplots(
+        2, 1,
+        figsize=figsize,
+        gridspec_kw={"height_ratios": [1, 1], "hspace": 0.35},
+    )
+
+    plot_attribution_percent(attr_top, ax=ax_top, palette=palette)
+    plot_attribution_percent(attr_bottom, ax=ax_bot, palette=palette)
+
+    if title_top:
+        ax_top.set_title(
+            title_top, fontsize=11, fontweight="bold", loc="left",
+            color=palette.text,
+        )
+    if title_bottom:
+        ax_bot.set_title(
+            title_bottom, fontsize=11, fontweight="bold", loc="left",
+            color=palette.text,
+        )
+
+    # Top panel: hide column labels (the bottom panel labels them).
+    ax_top.set_xlabel("")
+    ax_top.tick_params(axis="x", labelbottom=False)
+
+    # Force a shared y-axis range so the reader can compare percentages
+    # by *eye height*, not just by reading the tick labels.
+    top_max = max(attr_top.column_attribution_pct, default=0)
+    bot_max = max(attr_bottom.column_attribution_pct, default=0)
+    if attr_top.statistics is not None:
+        top_max = max(top_max, max(attr_top.statistics.attribution_pct_ci_upper, default=0))
+    if attr_bottom.statistics is not None:
+        bot_max = max(bot_max, max(attr_bottom.statistics.attribution_pct_ci_upper, default=0))
+    y_max = max(top_max, bot_max) * 1.15 + 5.0
+    ax_top.set_ylim(0, y_max)
+    ax_bot.set_ylim(0, y_max)
+
+    return fig
+
+
 # ---------------------------------------------------------------------------
 # I/O helper
 # ---------------------------------------------------------------------------

@@ -1,0 +1,3 @@
+column,label,untwirled_pct,untwirled_q,untwirled_significant,twirled_pct,twirled_q,twirled_significant
+0,H(0),11.8036,1.000000e-03,1,42.1964,1.000000e-03,1
+1,"CNOT(0,1)",88.1964,1.000000e-03,1,57.8036,1.000000e-03,1

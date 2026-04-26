@@ -1,6 +1,6 @@
 # PRISM
 
-[![tests](https://github.com/justinbrianhwang/PRISM/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/justinbrianhwang/PRISM/actions/workflows/test.yml)
+[![tests](https://github.com/justinbrianhwang/PRISM/blob/main/assets/gui/GUI.png)](https://github.com/justinbrianhwang/PRISM/actions/workflows/test.yml)
 
 > **P**er-gate **R**eproducible **I**nference for **S**tochastic **M**echanics
 

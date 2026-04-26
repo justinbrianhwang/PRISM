@@ -1,0 +1,47 @@
+{
+  "version": "2.0",
+  "kind": "noise_attribution",
+  "label": "attr_bell_phase_flip",
+  "title": "Bell state  |  phase-flip p=0.05",
+  "circuit": {
+    "version": "1.0",
+    "num_qubits": 2,
+    "gates": [
+      {
+        "name": "H",
+        "targets": [
+          0
+        ],
+        "params": [],
+        "column": 0
+      },
+      {
+        "name": "CNOT",
+        "targets": [
+          0,
+          1
+        ],
+        "params": [],
+        "column": 1
+      }
+    ]
+  },
+  "noise_model": {
+    "global": [
+      {
+        "type": "PhaseFlipNoise",
+        "probability": 0.05
+      }
+    ],
+    "gate_specific": {}
+  },
+  "params": {
+    "n_trials": 120,
+    "n_bootstrap": 1000,
+    "confidence": 0.95,
+    "fdr_level": 0.05
+  },
+  "seed": 20260428,
+  "prism_version": "1.0.0",
+  "generated_at": "2026-04-26T08:16:20.041699+00:00"
+}

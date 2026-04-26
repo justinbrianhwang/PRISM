@@ -355,7 +355,7 @@ def attribution_summary_figure(
 def save_figure(
     fig: "Figure",
     path: str,
-    dpi: int = 200,
+    dpi: int = 300,
 ) -> None:
     """Save a figure with sensible publication defaults.
 
@@ -363,6 +363,17 @@ def save_figure(
     ``pad_inches=0.05`` and the supplied DPI.  The output format is
     inferred from the file extension, so ``.pdf`` / ``.png`` / ``.svg``
     all work.
+
+    Resolution policy
+    -----------------
+    * **PDF / SVG** are vector formats; the ``dpi`` argument has no
+      effect on their visual fidelity, but is still used to size any
+      embedded raster elements (we do not generate any in PRISM, so
+      the output is fully vector and scales infinitely).
+    * **PNG** is rasterised at the given DPI.  300 DPI -- the paper
+      default -- meets typical journal print requirements and is
+      visibly sharper than the on-screen 200 DPI default that earlier
+      revisions used.
     """
     fig.savefig(path, dpi=dpi, bbox_inches="tight", pad_inches=0.05)
 

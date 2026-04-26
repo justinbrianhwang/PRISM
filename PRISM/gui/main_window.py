@@ -310,6 +310,14 @@ class MainWindow(QMainWindow):
         self._action_export_image.setStatusTip("Export circuit as image")
         self._action_export_image.triggered.connect(self._on_export_image)
 
+        self._action_export_window = QAction("Export &Window...", self)
+        self._action_export_window.setShortcut(QKeySequence("Ctrl+Shift+E"))
+        self._action_export_window.setStatusTip(
+            "Export the entire window as high-DPI PNG and PDF "
+            "(for paper screenshots)"
+        )
+        self._action_export_window.triggered.connect(self._on_export_window)
+
         self._action_exit = QAction("E&xit", self)
         self._action_exit.setShortcut(QKeySequence("Alt+F4"))
         self._action_exit.setStatusTip("Exit the application")
@@ -417,6 +425,7 @@ class MainWindow(QMainWindow):
         file_menu.addAction(self._action_save)
         file_menu.addAction(self._action_save_as)
         file_menu.addAction(self._action_export_image)
+        file_menu.addAction(self._action_export_window)
         file_menu.addSeparator()
         file_menu.addAction(self._action_exit)
 
@@ -1074,6 +1083,46 @@ class MainWindow(QMainWindow):
                 self, "Export Error",
                 f"Failed to export image:\n{e}"
             )
+
+    def _on_export_window(self):
+        """Export the whole window at 3x supersample as PNG and PDF.
+
+        Always emits both ``<stem>.png`` and ``<stem>.pdf`` -- PDF for
+        paper inclusion (sharp vector text), PNG for chat / web
+        previews.  The dialog asks for a stem; the extensions are added
+        automatically.
+        """
+        from PRISM.core.export import WindowExporter
+
+        filepath, _ = QFileDialog.getSaveFileName(
+            self, "Export Window (PNG + PDF)", "prism_window",
+            "PRISM window export (*.pdf *.png);;All Files (*)"
+        )
+        if not filepath:
+            return
+
+        # Strip any extension so we can emit both .png and .pdf with a
+        # shared stem.
+        path = Path(filepath)
+        directory = path.parent
+        stem = path.stem if path.suffix.lower() in {".png", ".pdf"} else path.name
+
+        try:
+            png_path, pdf_path = WindowExporter.export_both(
+                self, directory, stem,
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self, "Export Error",
+                f"Failed to export window:\n{e}"
+            )
+            logger.error("Window export failed", exc_info=True)
+            return
+
+        self.statusBar().showMessage(
+            f"Exported window: {png_path.name} + {pdf_path.name}",
+            5000,
+        )
 
     def _confirm_discard(self) -> bool:
         """Ask the user to confirm discarding unsaved changes.

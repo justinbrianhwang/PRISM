@@ -287,8 +287,9 @@ def replay(
     config: ReplayConfig | str | Path,
     output_dir: str | Path,
     write_csv: bool = True,
-    write_png: bool = True,
     write_pdf: bool = True,
+    write_png: bool = False,
+    with_title: bool = False,
 ) -> ReplayResult:
     """Reconstruct one experiment from a config and write its outputs.
 
@@ -298,11 +299,23 @@ def replay(
         Either an in-memory :class:`ReplayConfig` or a path to a JSON
         config on disk.
     output_dir : str | Path
-        Directory where ``<label>.pdf`` / ``.png`` / ``.csv`` will be
-        written.  Created if missing.
-    write_csv, write_png, write_pdf : bool
-        Toggle individual outputs.  Useful for fast smoke runs that
-        only need the PDF.
+        Directory where ``<label>.pdf`` (and optionally ``<label>.png``
+        / ``<label>.csv``) will be written.  Created if missing.
+    write_csv : bool, optional
+        Write the per-column statistics table (default ``True``).
+    write_pdf : bool, optional
+        Write the vector PDF (default ``True``).  PDF is the canonical
+        paper artefact -- vector, infinite zoom, native LaTeX include.
+    write_png : bool, optional
+        Write a 300-DPI PNG raster (default ``False``).  Off by default
+        because PDFs are sufficient for paper inclusion; turn on when
+        you need the raster for a chat preview or a webpage that does
+        not render PDFs inline.
+    with_title : bool, optional
+        Render the config's ``title`` as a figure suptitle.  Default
+        ``False``: paper figures are uncluttered and the LaTeX caption
+        owns the labelling.  Useful as ``True`` for interactive
+        previews and chat-friendly PNGs.
 
     Returns
     -------
@@ -343,7 +356,9 @@ def replay(
     png_path = output_dir / f"{config.label}.png"
     csv_path = output_dir / f"{config.label}.csv"
 
-    fig = attribution_summary_figure(attr, title=config.title)
+    fig = attribution_summary_figure(
+        attr, title=config.title if with_title else "",
+    )
     if write_pdf:
         save_figure(fig, str(pdf_path))
     if write_png:
@@ -370,11 +385,13 @@ def replay_all(
     output_dir: str | Path,
     pattern: str = "*.json",
     csv_dir: str | Path | None = None,
+    write_png: bool = False,
 ) -> list[ReplayResult]:
     """Replay every JSON config under ``config_dir`` matching ``pattern``.
 
-    Figures (PDF + PNG) go to ``output_dir``.  CSVs go to
-    ``csv_dir`` if provided, else next to the configs.
+    PDFs go to ``output_dir`` (and optional PNGs alongside if
+    ``write_png=True``).  CSVs go to ``csv_dir`` if provided, else next
+    to the configs.
     """
     config_dir = Path(config_dir)
     output_dir = Path(output_dir)
@@ -394,7 +411,7 @@ def replay_all(
         cfg = ReplayConfig.load(cfg_path)
         # Render figure into output_dir, but place CSV alongside the config
         # by default so generation and replay share the same layout.
-        res = replay(cfg, output_dir, write_csv=False)
+        res = replay(cfg, output_dir, write_csv=False, write_png=write_png)
         if csv_target != output_dir:
             csv_path = csv_target / f"{cfg.label}.csv"
             _replay_csv_only(cfg, csv_path)
@@ -551,8 +568,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Skip CSV output.",
     )
     p.add_argument(
-        "--no-png", action="store_true",
-        help="Skip PNG output (PDF only).",
+        "--with-png", action="store_true",
+        help=(
+            "Also emit a 300-DPI PNG raster alongside the PDF.  Off by "
+            "default -- PDF is the canonical paper artefact, PNG is "
+            "only useful for chat / web previews."
+        ),
     )
     return p.parse_args(argv)
 
@@ -604,7 +625,7 @@ def main(argv: list[str] | None = None) -> int:
         args.config,
         output_dir,
         write_csv=False,  # write to csv_dir instead
-        write_png=not args.no_png,
+        write_png=args.with_png,
     )
     if not args.no_csv:
         _replay_csv_only(
@@ -617,7 +638,7 @@ def main(argv: list[str] | None = None) -> int:
         f"  recov={res.n_recovery}  ({elapsed:.2f}s)"
     )
     print(f"  PDF  : {res.output_pdf}")
-    if not args.no_png:
+    if args.with_png:
         print(f"  PNG  : {res.output_png}")
     if not args.no_csv:
         print(f"  CSV  : {csv_dir / (res.label + '.csv')}")

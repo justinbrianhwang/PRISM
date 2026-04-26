@@ -165,13 +165,19 @@ def _read_csv_rows(path: Path) -> list[list[str]]:
 
 class TestReplay:
 
-    def test_writes_pdf_png_csv(self, small_config, tmp_path):
+    def test_default_writes_pdf_and_csv_no_png(self, small_config, tmp_path):
+        """The PDF-only default: PDF + CSV land on disk, but no PNG."""
         res = replay(small_config, tmp_path)
         assert res.output_pdf.exists() and res.output_pdf.stat().st_size > 1000
-        assert res.output_png.exists() and res.output_png.stat().st_size > 1000
         assert res.output_csv.exists() and res.output_csv.stat().st_size > 100
+        assert not res.output_png.exists()
         assert res.n_columns == 2
         assert res.elapsed_seconds > 0
+
+    def test_with_png_emits_raster(self, small_config, tmp_path):
+        res = replay(small_config, tmp_path, write_png=True)
+        assert res.output_pdf.exists()
+        assert res.output_png.exists() and res.output_png.stat().st_size > 1000
 
     def test_skip_outputs(self, small_config, tmp_path):
         res = replay(
@@ -257,12 +263,32 @@ class TestReplayAll:
             cfg.save(cfg_dir / f"bell_p{i}.json")
 
         out_dir = tmp_path / "out"
+        # Default replay_all: PDF + CSV, no PNG.
         results = replay_all(cfg_dir, out_dir, csv_dir=cfg_dir)
         assert len(results) == 2
         for res in results:
             assert res.output_pdf.exists()
-            assert res.output_png.exists()
             assert res.output_csv.exists()
+            assert not res.output_png.exists()
+
+    def test_replays_with_png_when_requested(self, small_circuit, tmp_path):
+        cfg_dir = tmp_path / "cfgs"
+        cfg_dir.mkdir()
+        nm = NoiseModel()
+        nm.add_global_noise(DepolarizingNoise(0.05))
+        cfg = ReplayConfig.from_current(
+            label="bell",
+            title="bell",
+            circuit=small_circuit,
+            noise_model=nm,
+            params=ReplayParams(n_trials=20, n_bootstrap=100),
+            seed=11,
+        )
+        cfg.save(cfg_dir / "bell.json")
+
+        out_dir = tmp_path / "out"
+        results = replay_all(cfg_dir, out_dir, csv_dir=cfg_dir, write_png=True)
+        assert results[0].output_png.exists()
 
     def test_empty_directory_raises(self, tmp_path):
         empty = tmp_path / "empty"
@@ -292,7 +318,6 @@ class TestReplayCLI:
                 str(cfg_path),
                 "--output", str(out_dir),
                 "--csv-dir", str(tmp_path),
-                "--no-png",
             ],
             cwd=self._project_root(),
             capture_output=True,

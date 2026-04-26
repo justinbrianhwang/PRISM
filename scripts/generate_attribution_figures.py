@@ -49,6 +49,7 @@ from PRISM.engine.noise import (  # noqa: E402
     BitFlipNoise,
     DepolarizingNoise,
     NoiseModel,
+    PhaseFlipNoise,
 )
 from PRISM.figures import use_paper_style  # noqa: E402
 from PRISM.replay import (  # noqa: E402
@@ -62,6 +63,15 @@ from PRISM.replay import (  # noqa: E402
 # Benchmark circuits -- no Measure gates so attribution doesn't see
 # phantom zero-weight columns.
 # ---------------------------------------------------------------------------
+
+
+def _drop_classical_gates(qc: QuantumCircuit) -> QuantumCircuit:
+    """Strip Measure / Barrier instances so attribution does not get
+    phantom zero-weight columns at the tail of every plot."""
+    qc.gates = [
+        g for g in qc.gates if g.gate_name not in ("Measure", "Barrier")
+    ]
+    return qc
 
 
 def _bell() -> QuantumCircuit:
@@ -79,14 +89,23 @@ def _ghz3() -> QuantumCircuit:
     return qc
 
 
+def _ghz4() -> QuantumCircuit:
+    qc = QuantumCircuit(num_qubits=4)
+    qc.add_gate(GateInstance("H", [0], [], 0))
+    qc.add_gate(GateInstance("CNOT", [0, 1], [], 1))
+    qc.add_gate(GateInstance("CNOT", [1, 2], [], 2))
+    qc.add_gate(GateInstance("CNOT", [2, 3], [], 3))
+    return qc
+
+
 def _qft3() -> QuantumCircuit:
     """3-qubit QFT without the trailing measurements."""
-    qc = AlgorithmTemplate.quantum_fourier_transform(3)
-    # Drop any Measure / Barrier gates if the template added them.
-    qc.gates = [
-        g for g in qc.gates if g.gate_name not in ("Measure", "Barrier")
-    ]
-    return qc
+    return _drop_classical_gates(AlgorithmTemplate.quantum_fourier_transform(3))
+
+
+def _qft4() -> QuantumCircuit:
+    """4-qubit QFT without the trailing measurements."""
+    return _drop_classical_gates(AlgorithmTemplate.quantum_fourier_transform(4))
 
 
 def _qaoa() -> QuantumCircuit:
@@ -97,12 +116,27 @@ def _bit_flip_encoder() -> QuantumCircuit:
     return AlgorithmTemplate.bit_flip_encoder()
 
 
+def _bernstein_vazirani_3() -> QuantumCircuit:
+    """Bernstein-Vazirani for the secret string '101' over 3 input qubits.
+
+    The template adds a final Hadamard layer on the inputs followed by
+    measurements; we strip the measurements so attribution sees only the
+    quantum part.  4 qubits total (3 input + 1 ancilla).
+    """
+    return _drop_classical_gates(
+        AlgorithmTemplate.bernstein_vazirani(secret="101")
+    )
+
+
 CIRCUITS: dict[str, Callable[[], QuantumCircuit]] = {
     "bell": _bell,
     "ghz3": _ghz3,
+    "ghz4": _ghz4,
     "qft3": _qft3,
+    "qft4": _qft4,
     "qaoa_maxcut": _qaoa,
     "bit_flip_encoder": _bit_flip_encoder,
+    "bernstein_vazirani_3": _bernstein_vazirani_3,
 }
 
 
@@ -123,6 +157,12 @@ def _bit_flip_noise(p: float = 0.05) -> NoiseModel:
     return nm
 
 
+def _phase_flip_noise(p: float = 0.05) -> NoiseModel:
+    nm = NoiseModel()
+    nm.add_global_noise(PhaseFlipNoise(p))
+    return nm
+
+
 def _amp_damping_noise(gamma: float = 0.05) -> NoiseModel:
     nm = NoiseModel()
     nm.add_global_noise(AmplitudeDampingNoise(gamma))
@@ -132,21 +172,27 @@ def _amp_damping_noise(gamma: float = 0.05) -> NoiseModel:
 NOISES: dict[str, Callable[[], NoiseModel]] = {
     "depolarizing": _depolarizing_noise,
     "bit_flip": _bit_flip_noise,
+    "phase_flip": _phase_flip_noise,
     "amp_damping": _amp_damping_noise,
 }
 
 
-# Pretty labels for figure titles
+# Pretty labels for figure titles (kept in the JSON config for posterity
+# even though the rendered figures are now title-less).
 CIRCUIT_TITLES = {
     "bell": "Bell state",
     "ghz3": "GHZ-3",
+    "ghz4": "GHZ-4",
     "qft3": "QFT (3 qubits)",
+    "qft4": "QFT (4 qubits)",
     "qaoa_maxcut": "QAOA MaxCut on C_4",
     "bit_flip_encoder": "Bit-flip encoder [3,1,1]",
+    "bernstein_vazirani_3": "Bernstein-Vazirani (secret 101)",
 }
 NOISE_TITLES = {
     "depolarizing": "depolarizing p=0.05",
     "bit_flip": "bit-flip p=0.05",
+    "phase_flip": "phase-flip p=0.05",
     "amp_damping": "amplitude damping gamma=0.05",
 }
 
@@ -165,6 +211,7 @@ def run(
     fdr_level: float,
     only_circuits: list[str] | None = None,
     only_noises: list[str] | None = None,
+    with_png: bool = False,
 ) -> int:
     fig_dir = output_dir / "figures"
     exp_dir = output_dir / "experiments"
@@ -211,7 +258,9 @@ def run(
             )
             config.save(exp_dir / f"{stem}.json")
 
-            res = replay(config, fig_dir, write_csv=False)
+            res = replay(
+                config, fig_dir, write_csv=False, write_png=with_png,
+            )
             # CSV lives next to the JSON config, not in the figure dir,
             # because the appendix tables are organised alongside the
             # configs they correspond to.
@@ -229,7 +278,9 @@ def run(
     total_elapsed = time.perf_counter() - t_start
     print()
     print(f"Generated {done} figures in {total_elapsed:.1f}s")
-    print(f"  PDFs/PNGs : {fig_dir}")
+    print(f"  PDFs      : {fig_dir}")
+    if with_png:
+        print(f"  PNGs      : {fig_dir}")
     print(f"  CSVs/JSON : {exp_dir}")
     return 0
 
@@ -270,6 +321,14 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         choices=list(NOISES.keys()),
         help="Restrict to a subset of noise channels.",
     )
+    p.add_argument(
+        "--with-png", action="store_true",
+        help=(
+            "Also emit a 300-DPI PNG raster alongside each PDF.  Off "
+            "by default -- PDF is the canonical paper artefact, PNG is "
+            "only useful for chat / web previews."
+        ),
+    )
     return p.parse_args(argv)
 
 
@@ -291,6 +350,7 @@ def main(argv: list[str] | None = None) -> int:
         fdr_level=args.fdr_level,
         only_circuits=args.only_circuits,
         only_noises=args.only_noises,
+        with_png=args.with_png,
     )
 
 

@@ -1,0 +1,4 @@
+column,label,delta_F_mean,delta_F_ci_lower,delta_F_ci_upper,p_value,q_value,significant,attribution_pct,attribution_pct_ci_lower,attribution_pct_ci_upper,is_recovery,recovery_rate,recovery_rate_ci_lower,recovery_rate_ci_upper
+0,H(0),2.500000e-02,4.440892e-16,5.833333e-02,8.400000e-02,1.040000e-01,0,15.0000,0.0000,35.0000,0,0.0000,0.0000,0.0000
+1,"CNOT(0,1)",4.166667e-02,-7.401487e-18,9.166667e-02,1.040000e-01,1.040000e-01,0,25.0000,0.0000,47.6242,0,0.0083,0.0000,0.0250
+2,"CNOT(1,2)",1.000000e-01,5.000000e-02,1.500000e-01,1.000000e-03,3.000000e-03,1,60.0000,37.4884,80.0000,0,0.0000,0.0000,0.0000

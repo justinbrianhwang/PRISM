@@ -1,0 +1,140 @@
+{
+  "version": "2.0",
+  "kind": "noise_attribution",
+  "label": "attr_qft4_depolarizing",
+  "title": "QFT (4 qubits)  |  depolarizing p=0.05",
+  "circuit": {
+    "version": "1.0",
+    "num_qubits": 4,
+    "gates": [
+      {
+        "name": "H",
+        "targets": [
+          0
+        ],
+        "params": [],
+        "column": 0
+      },
+      {
+        "name": "Phase",
+        "targets": [
+          1
+        ],
+        "params": [
+          1.5707963267948966
+        ],
+        "column": 1
+      },
+      {
+        "name": "Phase",
+        "targets": [
+          2
+        ],
+        "params": [
+          0.7853981633974483
+        ],
+        "column": 2
+      },
+      {
+        "name": "Phase",
+        "targets": [
+          3
+        ],
+        "params": [
+          0.39269908169872414
+        ],
+        "column": 3
+      },
+      {
+        "name": "H",
+        "targets": [
+          1
+        ],
+        "params": [],
+        "column": 4
+      },
+      {
+        "name": "Phase",
+        "targets": [
+          2
+        ],
+        "params": [
+          1.5707963267948966
+        ],
+        "column": 5
+      },
+      {
+        "name": "Phase",
+        "targets": [
+          3
+        ],
+        "params": [
+          0.7853981633974483
+        ],
+        "column": 6
+      },
+      {
+        "name": "H",
+        "targets": [
+          2
+        ],
+        "params": [],
+        "column": 7
+      },
+      {
+        "name": "Phase",
+        "targets": [
+          3
+        ],
+        "params": [
+          1.5707963267948966
+        ],
+        "column": 8
+      },
+      {
+        "name": "H",
+        "targets": [
+          3
+        ],
+        "params": [],
+        "column": 9
+      },
+      {
+        "name": "SWAP",
+        "targets": [
+          0,
+          3
+        ],
+        "params": [],
+        "column": 10
+      },
+      {
+        "name": "SWAP",
+        "targets": [
+          1,
+          2
+        ],
+        "params": [],
+        "column": 11
+      }
+    ]
+  },
+  "noise_model": {
+    "global": [
+      {
+        "type": "DepolarizingNoise",
+        "probability": 0.05
+      }
+    ],
+    "gate_specific": {}
+  },
+  "params": {
+    "n_trials": 120,
+    "n_bootstrap": 1000,
+    "confidence": 0.95,
+    "fdr_level": 0.05
+  },
+  "seed": 20264426,
+  "prism_version": "1.0.0",
+  "generated_at": "2026-04-26T08:16:26.965697+00:00"
+}

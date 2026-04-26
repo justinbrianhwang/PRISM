@@ -41,6 +41,14 @@ pip install PyQt6 numpy matplotlib
 
 ---
 
+## What a PRISM analysis looks like
+
+The screenshot below is one of the figures the paper pipeline emits -- an attribution analysis of QAOA(C_4) under depolarizing noise (p=0.05). The top panel breaks per-column fidelity loss into bootstrap-CI bars with Benjamini-Hochberg significance stars, the middle panel traces the running delta_F with its 95% CI band, and the bottom panel reports the per-column fidelity recovery rate. Every figure in [paper/figures/](paper/figures/) is reproducible bit-exactly via `python -m PRISM.replay`.
+
+![Sample PRISM attribution output](assets/hero_attribution.png)
+
+---
+
 ## GUI Overview
 <img width="1919" height="1006" alt="image" src="https://github.com/user-attachments/assets/a47f16c9-fea4-4494-b7de-68ae5ce8cd3a" />
 
@@ -220,14 +228,35 @@ All scripts output JSON and support `--seed` for full reproducibility.
 Every figure in `paper/figures/` ships with a self-contained JSON config in `paper/experiments/` that fully describes the experiment (serialised circuit, serialised noise model, seed, all bootstrap parameters). The replay CLI reconstructs the experiment from the config alone -- no external lookup tables, no environment dependence -- so that a reviewer with a fresh clone can rebuild any figure bit-exactly:
 
 ```bash
-# Rebuild one figure from its config
+# Rebuild one figure from its config (PDF + CSV)
 python -m PRISM.replay paper/experiments/attr_qaoa_maxcut_depolarizing.json
 
 # Rebuild every figure in the paper from its directory
 python -m PRISM.replay --all paper/experiments/ --output paper/figures/
+
+# Also emit a 300 DPI PNG raster alongside the PDF
+python -m PRISM.replay paper/experiments/attr_bell_depolarizing.json --with-png
 ```
 
-The CSV table that backs the appendix is regenerated alongside each figure and is byte-identical to the original generation under the same config. This is verified by `tests/test_replay.py::test_replay_is_bit_exact_for_same_config` in CI.
+PDFs are the canonical paper artefact -- vector text, infinite zoom, native LaTeX include. PNG output is opt-in (`--with-png`) since LaTeX prefers PDF for inclusion and the project does not need raster files in `paper/figures/`. The CSV table that backs the appendix is regenerated alongside each figure and is byte-identical to the original generation under the same config (verified by `tests/test_replay.py::test_replay_is_bit_exact_for_same_config`).
+
+The current benchmark suite covers **8 circuits x 4 noise channels = 32 figures**:
+
+| Axis | Members |
+|------|---------|
+| Circuits | Bell, GHZ-3, GHZ-4, QFT-3, QFT-4, QAOA MaxCut(C_4), Bit-flip encoder, Bernstein-Vazirani(secret 101) |
+| Noise | depolarizing(p=0.05), bit-flip(p=0.05), phase-flip(p=0.05), amplitude damping(gamma=0.05) |
+
+---
+
+## High-DPI window screenshots
+
+Manual OS-level screenshots lose fidelity to the user's display DPI. `File -> Export Window...` (Ctrl+Shift+E) renders the entire main window through Qt's painter pipeline at a 3x supersample factor and writes both:
+
+* `prism_window.pdf` -- vector page where Qt-drawn text and shapes stay sharp at any zoom (suitable for paper inclusion)
+* `prism_window.png` -- 300-DPI raster (suitable for chat / GitHub previews)
+
+Backed by `PRISM.core.export.WindowExporter`, exposed programmatically as `WindowExporter.export_both(window, "out/", "stem")`.
 
 ---
 

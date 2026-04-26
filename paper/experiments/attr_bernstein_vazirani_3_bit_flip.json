@@ -1,0 +1,112 @@
+{
+  "version": "2.0",
+  "kind": "noise_attribution",
+  "label": "attr_bernstein_vazirani_3_bit_flip",
+  "title": "Bernstein-Vazirani (secret 101)  |  bit-flip p=0.05",
+  "circuit": {
+    "version": "1.0",
+    "num_qubits": 4,
+    "gates": [
+      {
+        "name": "X",
+        "targets": [
+          3
+        ],
+        "params": [],
+        "column": 0
+      },
+      {
+        "name": "H",
+        "targets": [
+          0
+        ],
+        "params": [],
+        "column": 1
+      },
+      {
+        "name": "H",
+        "targets": [
+          1
+        ],
+        "params": [],
+        "column": 1
+      },
+      {
+        "name": "H",
+        "targets": [
+          2
+        ],
+        "params": [],
+        "column": 1
+      },
+      {
+        "name": "H",
+        "targets": [
+          3
+        ],
+        "params": [],
+        "column": 1
+      },
+      {
+        "name": "CNOT",
+        "targets": [
+          0,
+          3
+        ],
+        "params": [],
+        "column": 2
+      },
+      {
+        "name": "CNOT",
+        "targets": [
+          2,
+          3
+        ],
+        "params": [],
+        "column": 3
+      },
+      {
+        "name": "H",
+        "targets": [
+          0
+        ],
+        "params": [],
+        "column": 4
+      },
+      {
+        "name": "H",
+        "targets": [
+          1
+        ],
+        "params": [],
+        "column": 4
+      },
+      {
+        "name": "H",
+        "targets": [
+          2
+        ],
+        "params": [],
+        "column": 4
+      }
+    ]
+  },
+  "noise_model": {
+    "global": [
+      {
+        "type": "BitFlipNoise",
+        "probability": 0.05
+      }
+    ],
+    "gate_specific": {}
+  },
+  "params": {
+    "n_trials": 120,
+    "n_bootstrap": 1000,
+    "confidence": 0.95,
+    "fdr_level": 0.05
+  },
+  "seed": 20267427,
+  "prism_version": "1.0.0",
+  "generated_at": "2026-04-26T08:16:37.525623+00:00"
+}

@@ -1,0 +1,48 @@
+{
+  "version": "2.0",
+  "kind": "noise_attribution",
+  "label": "attr_bit_flip_encoder_phase_flip",
+  "title": "Bit-flip encoder [3,1,1]  |  phase-flip p=0.05",
+  "circuit": {
+    "version": "1.0",
+    "num_qubits": 3,
+    "gates": [
+      {
+        "name": "CNOT",
+        "targets": [
+          0,
+          1
+        ],
+        "params": [],
+        "column": 0
+      },
+      {
+        "name": "CNOT",
+        "targets": [
+          0,
+          2
+        ],
+        "params": [],
+        "column": 1
+      }
+    ]
+  },
+  "noise_model": {
+    "global": [
+      {
+        "type": "PhaseFlipNoise",
+        "probability": 0.05
+      }
+    ],
+    "gate_specific": {}
+  },
+  "params": {
+    "n_trials": 120,
+    "n_bootstrap": 1000,
+    "confidence": 0.95,
+    "fdr_level": 0.05
+  },
+  "seed": 20266428,
+  "prism_version": "1.0.0",
+  "generated_at": "2026-04-26T08:16:36.098881+00:00"
+}

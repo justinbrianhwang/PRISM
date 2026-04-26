@@ -33,3 +33,20 @@ coverage.xml
 # OS
 .DS_Store
 Thumbs.db
+
+# User-local paper drafts (do not commit while iterating)
+Arxiv/
+arxiv/
+
+# LaTeX build artefacts
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+*.fls
+*.fdb_latexmk

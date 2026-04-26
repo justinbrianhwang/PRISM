@@ -115,3 +115,51 @@ class TestGracefulMissingLogo:
         # versions.
         null_icon = QIcon()
         qapp.setWindowIcon(null_icon)
+
+
+# ---------------------------------------------------------------------------
+# Windows AppUserModelID helper
+# ---------------------------------------------------------------------------
+
+
+class TestAppUserModelID:
+    """The AUMID helper is what fixes the Windows taskbar showing the
+    Python interpreter's icon instead of PRISM's.  We can't fully test
+    the Win32 side-effect from off-Windows or off-Windows test runners,
+    but we *can* lock in the cross-platform contract: the helper must
+    be a no-op anywhere except Windows, and must never raise."""
+
+    def test_helper_is_a_noop_on_non_windows(self):
+        # Skip if we're actually on Windows -- the no-op contract only
+        # applies elsewhere.  The Windows code path is exercised
+        # implicitly when a real user launches PRISM on Windows.
+        import sys as _sys
+
+        if _sys.platform == "win32":
+            pytest.skip("Helper performs a real call on Windows")
+
+        from PRISM.__main__ import _set_windows_app_user_model_id
+
+        # Calling the helper should never raise on non-Windows.
+        _set_windows_app_user_model_id("Test.AUMID.1.0")
+
+    def test_helper_swallows_ctypes_failures_on_windows(self, monkeypatch):
+        """On Windows, even if ``ctypes.windll.shell32`` is missing the
+        symbol (older Windows / restricted environment), the helper must
+        not raise -- it just falls back to the inherited icon."""
+        import sys as _sys
+
+        if _sys.platform != "win32":
+            pytest.skip("Windows-only contract")
+
+        from PRISM.__main__ import _set_windows_app_user_model_id
+
+        import ctypes
+
+        class _Bad:
+            def __getattr__(self, name):
+                raise OSError("simulated symbol-resolution failure")
+
+        monkeypatch.setattr(ctypes, "windll", _Bad(), raising=False)
+        # Must not propagate the OSError.
+        _set_windows_app_user_model_id("Test.AUMID.1.0")

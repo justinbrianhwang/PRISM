@@ -17,17 +17,18 @@ publication-grade error bars in roughly a minute on a laptop CPU.
 Each output figure file is named
 ``attr_<circuit>_<noise>.pdf`` and ``.png``; the matching CSV
 ``attr_<circuit>_<noise>.csv`` carries the per-column point estimates,
-CI bounds, p-values, and BH q-values for the table appendix.
+CI bounds, p-values, and BH q-values for the table appendix; the
+matching ``attr_<circuit>_<noise>.json`` is a self-contained
+:class:`PRISM.replay.ReplayConfig` that any reviewer can re-run via
+``python -m PRISM.replay <config.json>`` to bit-exactly reproduce the
+figure.
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
-import json
 import sys
 import time
-from dataclasses import asdict
 from pathlib import Path
 from typing import Callable
 
@@ -36,8 +37,6 @@ from typing import Callable
 import matplotlib
 matplotlib.use("Agg")
 
-import matplotlib.pyplot as plt  # noqa: E402  (deferred for backend)
-
 # Project root on path when the script is run directly.
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(_PROJECT_ROOT) not in sys.path:
@@ -45,17 +44,17 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 from PRISM.engine.algorithms import AlgorithmTemplate  # noqa: E402
 from PRISM.engine.circuit import GateInstance, QuantumCircuit  # noqa: E402
-from PRISM.engine.debugger import CircuitDebugger  # noqa: E402
 from PRISM.engine.noise import (  # noqa: E402
     AmplitudeDampingNoise,
     BitFlipNoise,
     DepolarizingNoise,
     NoiseModel,
 )
-from PRISM.figures import (  # noqa: E402
-    attribution_summary_figure,
-    save_figure,
-    use_paper_style,
+from PRISM.figures import use_paper_style  # noqa: E402
+from PRISM.replay import (  # noqa: E402
+    ReplayConfig,
+    ReplayParams,
+    replay,
 )
 
 
@@ -153,82 +152,6 @@ NOISE_TITLES = {
 
 
 # ---------------------------------------------------------------------------
-# Output writers
-# ---------------------------------------------------------------------------
-
-
-def _write_csv(path: Path, attr) -> None:
-    """Write the per-column table that backs the paper appendix."""
-    stats = attr.statistics
-    with path.open("w", encoding="utf-8", newline="") as f:
-        w = csv.writer(f)
-        w.writerow([
-            "column", "label",
-            "delta_F_mean", "delta_F_ci_lower", "delta_F_ci_upper",
-            "p_value", "q_value", "significant",
-            "attribution_pct",
-            "attribution_pct_ci_lower", "attribution_pct_ci_upper",
-            "is_recovery",
-            "recovery_rate",
-            "recovery_rate_ci_lower", "recovery_rate_ci_upper",
-        ])
-        for i, mean in enumerate(attr.delta_fidelity):
-            label = " + ".join(attr.gate_labels[i]) or f"col {i}"
-            row = [
-                i, label,
-                f"{mean:.6e}",
-            ]
-            if stats is not None:
-                row += [
-                    f"{stats.delta_fidelity_ci_lower[i]:.6e}",
-                    f"{stats.delta_fidelity_ci_upper[i]:.6e}",
-                    f"{stats.delta_fidelity_p_value[i]:.6e}",
-                    f"{stats.delta_fidelity_q_value[i]:.6e}",
-                    int(bool(stats.column_significant[i])),
-                ]
-            else:
-                row += ["", "", "", "", ""]
-            row += [
-                f"{attr.column_attribution_pct[i]:.4f}",
-            ]
-            if stats is not None:
-                row += [
-                    f"{stats.attribution_pct_ci_lower[i]:.4f}",
-                    f"{stats.attribution_pct_ci_upper[i]:.4f}",
-                ]
-            else:
-                row += ["", ""]
-            row += [int(bool(attr.is_recovery[i]))]
-            if stats is not None:
-                row += [
-                    f"{stats.recovery_rate[i]:.4f}",
-                    f"{stats.recovery_rate_ci_lower[i]:.4f}",
-                    f"{stats.recovery_rate_ci_upper[i]:.4f}",
-                ]
-            else:
-                row += ["", "", ""]
-            w.writerow(row)
-
-
-def _write_config(path: Path, circuit_name: str, noise_name: str,
-                  n_trials: int, n_bootstrap: int, seed: int,
-                  confidence: float, fdr_level: float) -> None:
-    """Write the JSON config that fully describes how to reproduce the figure."""
-    payload = {
-        "version": "1.0",
-        "kind": "noise_attribution",
-        "circuit": circuit_name,
-        "noise": noise_name,
-        "n_trials": n_trials,
-        "n_bootstrap": n_bootstrap,
-        "confidence": confidence,
-        "fdr_level": fdr_level,
-        "seed": seed,
-    }
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-
-# ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
 
@@ -250,8 +173,6 @@ def run(
 
     use_paper_style()
 
-    debugger = CircuitDebugger()
-
     circuits = only_circuits or list(CIRCUITS.keys())
     noises = only_noises or list(NOISES.keys())
 
@@ -266,50 +187,43 @@ def run(
             # Stable seed per (circuit, noise) -- same input always gives
             # the same figure, paper appendix can quote the seed.
             seed = seed_base + 1000 * ci + ni
-
-            t0 = time.perf_counter()
-            attr = debugger.compute_noise_attribution_with_statistics(
-                circuit,
-                noise,
-                n_trials=n_trials,
-                n_bootstrap=n_bootstrap,
-                confidence=confidence,
-                fdr_level=fdr_level,
-                seed=seed,
-            )
-            elapsed = time.perf_counter() - t0
-
+            stem = f"attr_{circ_name}_{noise_name}"
             title = (
                 f"{CIRCUIT_TITLES.get(circ_name, circ_name)}  |  "
                 f"{NOISE_TITLES.get(noise_name, noise_name)}"
             )
-            fig = attribution_summary_figure(attr, title=title)
 
-            stem = f"attr_{circ_name}_{noise_name}"
-            save_figure(fig, str(fig_dir / f"{stem}.pdf"))
-            save_figure(fig, str(fig_dir / f"{stem}.png"))
-            plt.close(fig)
-
-            _write_csv(exp_dir / f"{stem}.csv", attr)
-            _write_config(
-                exp_dir / f"{stem}.json",
-                circuit_name=circ_name,
-                noise_name=noise_name,
-                n_trials=n_trials,
-                n_bootstrap=n_bootstrap,
+            # Build the self-contained replay config first, then run the
+            # experiment via PRISM.replay so the generation path and the
+            # `python -m PRISM.replay` path share an implementation.
+            config = ReplayConfig.from_current(
+                label=stem,
+                title=title,
+                circuit=circuit,
+                noise_model=noise,
+                params=ReplayParams(
+                    n_trials=n_trials,
+                    n_bootstrap=n_bootstrap,
+                    confidence=confidence,
+                    fdr_level=fdr_level,
+                ),
                 seed=seed,
-                confidence=confidence,
-                fdr_level=fdr_level,
             )
+            config.save(exp_dir / f"{stem}.json")
+
+            res = replay(config, fig_dir, write_csv=False)
+            # CSV lives next to the JSON config, not in the figure dir,
+            # because the appendix tables are organised alongside the
+            # configs they correspond to.
+            from PRISM.replay import _replay_csv_only
+            _replay_csv_only(config, exp_dir / f"{stem}.csv")
 
             done += 1
-            sig_count = sum(attr.statistics.column_significant)
-            recov_count = sum(attr.is_recovery)
             print(
                 f"  [{done:2d}/{total}]  {stem:<38s}"
-                f"  cols={len(attr.delta_fidelity):2d}"
-                f"  sig={sig_count:2d}  recov={recov_count:2d}"
-                f"  ({elapsed:5.2f}s)"
+                f"  cols={res.n_columns:2d}"
+                f"  sig={res.n_significant:2d}  recov={res.n_recovery:2d}"
+                f"  ({res.elapsed_seconds:5.2f}s)"
             )
 
     total_elapsed = time.perf_counter() - t_start

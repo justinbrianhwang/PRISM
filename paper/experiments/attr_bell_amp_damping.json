@@ -1,11 +1,47 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "kind": "noise_attribution",
-  "circuit": "bell",
-  "noise": "amp_damping",
-  "n_trials": 120,
-  "n_bootstrap": 1000,
-  "confidence": 0.95,
-  "fdr_level": 0.05,
-  "seed": 20260428
+  "label": "attr_bell_amp_damping",
+  "title": "Bell state  |  amplitude damping gamma=0.05",
+  "circuit": {
+    "version": "1.0",
+    "num_qubits": 2,
+    "gates": [
+      {
+        "name": "H",
+        "targets": [
+          0
+        ],
+        "params": [],
+        "column": 0
+      },
+      {
+        "name": "CNOT",
+        "targets": [
+          0,
+          1
+        ],
+        "params": [],
+        "column": 1
+      }
+    ]
+  },
+  "noise_model": {
+    "global": [
+      {
+        "type": "AmplitudeDampingNoise",
+        "probability": 0.05
+      }
+    ],
+    "gate_specific": {}
+  },
+  "params": {
+    "n_trials": 120,
+    "n_bootstrap": 1000,
+    "confidence": 0.95,
+    "fdr_level": 0.05
+  },
+  "seed": 20260428,
+  "prism_version": "1.0.0",
+  "generated_at": "2026-04-26T08:00:35.280289+00:00"
 }

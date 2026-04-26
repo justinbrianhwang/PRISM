@@ -206,9 +206,28 @@ python scripts/vqe_benchmark.py --qubits 2 --hamiltonian heisenberg --iters 50 -
 
 # QEC threshold analysis
 python scripts/qec_threshold.py --codes bit_flip,steane --trials 100 --seed 42
+
+# Generate every paper attribution figure (5 circuits x 3 noise channels)
+python scripts/generate_attribution_figures.py
 ```
 
 All scripts output JSON and support `--seed` for full reproducibility.
+
+---
+
+## Reproducible Figure Replay
+
+Every figure in `paper/figures/` ships with a self-contained JSON config in `paper/experiments/` that fully describes the experiment (serialised circuit, serialised noise model, seed, all bootstrap parameters). The replay CLI reconstructs the experiment from the config alone -- no external lookup tables, no environment dependence -- so that a reviewer with a fresh clone can rebuild any figure bit-exactly:
+
+```bash
+# Rebuild one figure from its config
+python -m PRISM.replay paper/experiments/attr_qaoa_maxcut_depolarizing.json
+
+# Rebuild every figure in the paper from its directory
+python -m PRISM.replay --all paper/experiments/ --output paper/figures/
+```
+
+The CSV table that backs the appendix is regenerated alongside each figure and is byte-identical to the original generation under the same config. This is verified by `tests/test_replay.py::test_replay_is_bit_exact_for_same_config` in CI.
 
 ---
 
@@ -255,6 +274,8 @@ PRISM/
     analysis.py             # StateAnalysis, EntanglementEventDetector (hysteresis)
     debugger.py             # CircuitDebugger, NoiseAttribution + AttributionStatistics
     statistics.py           # Bootstrap CI / p-values / Benjamini-Hochberg FDR
+  figures.py                # Publication plotting (Qt-free matplotlib)
+  replay.py                 # Headless replay CLI (`python -m PRISM.replay`)
     comparison.py           # CircuitComparator, ComparisonResult
     optimizer.py            # CircuitOptimizer, BarrenPlateauAnalysis (layer-wise)
     qec.py                  # 3 QEC codes, QECSimulator (3 logical error metrics)
@@ -327,6 +348,9 @@ PRISM is being developed toward an arXiv preprint. The work is organized into th
 - **Phase 1 -- Statistical foundation + reproducibility** (in progress)
   - 1A: Bootstrap CI / p-values / FDR for noise attribution -- **shipped** (`engine/statistics.py`, `compute_noise_attribution_with_statistics()`)
   - 1B: pytest migration, GitHub Actions CI, headless replay CLI, paper directory
+    - Headless replay CLI -- **shipped** (`PRISM/replay.py`, `python -m PRISM.replay`)
+    - 5 benchmark x 3 noise figure suite -- **shipped** (`paper/figures/`, `paper/experiments/`)
+    - GitHub Actions CI -- pending
 - **Phase 2 -- Pauli twirling + QEC three-metric agreement analysis**
 - **Phase 3 (optional)** -- Classical shadows / Numba hot-path / Mirror RB (one of)
 

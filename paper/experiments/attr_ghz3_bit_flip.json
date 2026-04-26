@@ -1,11 +1,56 @@
 {
-  "version": "1.0",
+  "version": "2.0",
   "kind": "noise_attribution",
-  "circuit": "ghz3",
-  "noise": "bit_flip",
-  "n_trials": 120,
-  "n_bootstrap": 1000,
-  "confidence": 0.95,
-  "fdr_level": 0.05,
-  "seed": 20261427
+  "label": "attr_ghz3_bit_flip",
+  "title": "GHZ-3  |  bit-flip p=0.05",
+  "circuit": {
+    "version": "1.0",
+    "num_qubits": 3,
+    "gates": [
+      {
+        "name": "H",
+        "targets": [
+          0
+        ],
+        "params": [],
+        "column": 0
+      },
+      {
+        "name": "CNOT",
+        "targets": [
+          0,
+          1
+        ],
+        "params": [],
+        "column": 1
+      },
+      {
+        "name": "CNOT",
+        "targets": [
+          1,
+          2
+        ],
+        "params": [],
+        "column": 2
+      }
+    ]
+  },
+  "noise_model": {
+    "global": [
+      {
+        "type": "BitFlipNoise",
+        "probability": 0.05
+      }
+    ],
+    "gate_specific": {}
+  },
+  "params": {
+    "n_trials": 120,
+    "n_bootstrap": 1000,
+    "confidence": 0.95,
+    "fdr_level": 0.05
+  },
+  "seed": 20261427,
+  "prism_version": "1.0.0",
+  "generated_at": "2026-04-26T08:00:36.257273+00:00"
 }

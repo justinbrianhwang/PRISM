@@ -11,8 +11,8 @@ from PyQt6.QtWidgets import (
     QHeaderView,
 )
 
-from quantum_sim.engine.gate_registry import GateRegistry
-from quantum_sim.engine.gates import GateDefinition, GateType, _const
+from PRISM.engine.gate_registry import GateRegistry
+from PRISM.engine.gates import GateDefinition, GateType, _const
 
 
 class CustomGateDialog(QDialog):

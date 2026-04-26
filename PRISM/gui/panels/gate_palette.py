@@ -15,8 +15,8 @@ from PyQt6.QtWidgets import (
     QScrollArea, QSizePolicy,
 )
 
-from quantum_sim.engine.gate_registry import GateRegistry
-from quantum_sim.engine.gates import GateType
+from PRISM.engine.gate_registry import GateRegistry
+from PRISM.engine.gates import GateType
 
 
 class FlowLayout(QVBoxLayout):
@@ -330,7 +330,7 @@ class GatePalette(QDockWidget):
                  if g.gate_type in (GateType.CONTROLLED, GateType.MULTI)],
             ),
             (
-                "Measurement & Other",
+                "Measurement",
                 [g for g in registry.all_gates()
                  if g.gate_type in (GateType.MEASUREMENT, GateType.BARRIER)],
             ),

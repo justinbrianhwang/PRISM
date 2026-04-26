@@ -8,9 +8,9 @@ from __future__ import annotations
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QUndoStack, QUndoCommand
 
-from quantum_sim.engine.circuit import QuantumCircuit, GateInstance
-from quantum_sim.engine.gate_registry import GateRegistry
-from quantum_sim.engine.algorithms import AlgorithmTemplate
+from PRISM.engine.circuit import QuantumCircuit, GateInstance
+from PRISM.engine.gate_registry import GateRegistry
+from PRISM.engine.algorithms import AlgorithmTemplate
 
 
 # ---------------------------------------------------------------------------

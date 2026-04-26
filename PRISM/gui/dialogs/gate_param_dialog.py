@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QWidget, QGroupBox,
 )
 
-from quantum_sim.engine.gates import GateDefinition
+from PRISM.engine.gates import GateDefinition
 
 
 class GateParamDialog(QDialog):

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Quantum Circuit Simulator - Light Theme (Catppuccin Latte)
+   PRISM - Light Theme (Catppuccin Latte)
    ==========================================================================
    Base:      #eff1f5 (background)
    Mantle:    #e6e9ef (slightly darker background)
@@ -755,7 +755,10 @@ QToolBox::tab {
     color: #4c4f69;
     border: 1px solid #ccd0da;
     border-radius: 4px;
-    padding: 6px 12px;
+    /* Asymmetric vertical padding gives descenders (Q, g, p, y) room
+       to render without being clipped against the bottom border. */
+    padding: 6px 12px 8px 12px;
+    min-height: 22px;
     font-weight: 600;
     margin-top: 2px;
 }

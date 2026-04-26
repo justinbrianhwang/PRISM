@@ -19,14 +19,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np
 
 # ---- Engine imports -------------------------------------------------------
-from quantum_sim.engine.state_vector import StateVector
-from quantum_sim.engine.circuit import QuantumCircuit, GateInstance
-from quantum_sim.engine.simulator import Simulator
-from quantum_sim.engine.analysis import StateAnalysis
-from quantum_sim.engine.noise import NoiseModel, DepolarizingNoise, ReadoutError
-from quantum_sim.engine.measurement import MeasurementEngine, MeasurementBasis
-from quantum_sim.engine.reference import ReferenceManager
-from quantum_sim.engine.qec import BitFlipCode, QECSimulator
+from PRISM.engine.state_vector import StateVector
+from PRISM.engine.circuit import QuantumCircuit, GateInstance
+from PRISM.engine.simulator import Simulator
+from PRISM.engine.analysis import StateAnalysis
+from PRISM.engine.noise import NoiseModel, DepolarizingNoise, ReadoutError
+from PRISM.engine.measurement import MeasurementEngine, MeasurementBasis
+from PRISM.engine.reference import ReferenceManager
+from PRISM.engine.qec import BitFlipCode, QECSimulator
 
 
 TOLERANCE = 1e-8
@@ -192,7 +192,7 @@ def test_readout_error_modes():
         [0],
     )
     # Create |+0> state
-    from quantum_sim.engine.gates import H_MATRIX
+    from PRISM.engine.gates import H_MATRIX
     sv.apply_gate(H_MATRIX, [0])
 
     re = ReadoutError(p01=0.1, p10=0.1)
@@ -343,7 +343,7 @@ def test_noise_cptp():
     print("\nTest 7: Noise Channel CPTP Verification")
     print("-" * 40)
 
-    from quantum_sim.engine.noise import (
+    from PRISM.engine.noise import (
         NoiseModel, AmplitudeDampingNoise, DepolarizingNoise, BitFlipNoise,
     )
 
@@ -439,7 +439,7 @@ def test_performance_regression():
     )
 
     # (B) Ensemble rho: 4 qubits, 50 trials
-    from quantum_sim.engine.noise import NoiseModel, DepolarizingNoise
+    from PRISM.engine.noise import NoiseModel, DepolarizingNoise
 
     qc4 = QuantumCircuit(num_qubits=4)
     qc4.add_gate(GateInstance("H", [0], [], 0))
@@ -481,7 +481,7 @@ def test_readout_distribution_scaling():
     print("-" * 40)
     import time
 
-    from quantum_sim.engine.noise import ReadoutError
+    from PRISM.engine.noise import ReadoutError
 
     # 16-qubit test: if np.kron were used, this would need 32 GiB
     n = 16

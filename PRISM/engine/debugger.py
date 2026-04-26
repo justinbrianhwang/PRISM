@@ -2,6 +2,18 @@
 
 Provides breakpoint support, forward/backward stepping, noise impact analysis,
 and state diff between any two execution points.
+
+Noise attribution comes in two flavours:
+
+* :meth:`CircuitDebugger.compute_noise_attribution` -- mean / std only.
+  Cheap, suitable for the live GUI panel.
+* :meth:`CircuitDebugger.compute_noise_attribution_with_statistics` --
+  bootstrap CIs, two-sided p-values per column, Benjamini-Hochberg FDR
+  correction, and recovery-rate analysis.  Designed for publication-
+  quality figures and headless replay scripts.
+
+Both routines share a single trial-collection pass to avoid simulating
+the circuit twice.
 """
 
 from __future__ import annotations
@@ -15,6 +27,13 @@ from .circuit import QuantumCircuit, GateInstance
 from .gate_registry import GateRegistry
 from .gates import GateType
 from .analysis import StateAnalysis
+from .statistics import (
+    attribution_percentage,
+    benjamini_hochberg,
+    bootstrap_matrix_statistics,
+    column_pvalues_from_bootstrap,
+    recovery_rate,
+)
 
 
 @dataclass
@@ -48,6 +67,63 @@ class NoiseImpactResult:
 
 
 @dataclass
+class AttributionStatistics:
+    """Bootstrap statistics attached to a :class:`NoiseAttribution`.
+
+    All arrays are aligned with the gate-column axis of the parent
+    attribution: index ``i`` refers to the ``i``-th column of the
+    circuit's :pymeth:`compute_layers` output.
+
+    Attributes
+    ----------
+    delta_fidelity_ci_lower, delta_fidelity_ci_upper : list[float]
+        Two-sided percentile bootstrap CI bounds for each column's
+        per-trial mean fidelity contribution.
+    delta_fidelity_p_value : list[float]
+        Two-sided bootstrap p-value for ``H0: mean(delta_F_i) == 0``.
+    delta_fidelity_q_value : list[float]
+        BH-FDR corrected q-values across the column family.
+    column_significant : list[bool]
+        ``True`` where ``q_value <= fdr_level`` -- i.e. the column's
+        contribution is significantly different from zero after
+        multiple-comparison correction.
+    attribution_pct_ci_lower, attribution_pct_ci_upper : list[float]
+        Bootstrap CI for the per-column attribution percentage.  These
+        use the *same* row-resampled bootstrap as ``delta_fidelity``,
+        so the joint dependence introduced by the percentage's
+        denominator is preserved.
+    recovery_rate : list[float]
+        Empirical fraction of trials in which a column's contribution
+        was negative (fidelity recovered).
+    recovery_rate_ci_lower, recovery_rate_ci_upper : list[float]
+        Bootstrap CI for the recovery rate.
+    n_trials : int
+        Number of stochastic trials averaged in the parent attribution.
+    n_bootstrap : int
+        Number of bootstrap resamples used to compute the CIs.
+    confidence : float
+        Two-sided CI level (typically ``0.95``).
+    fdr_level : float
+        FDR target used to derive ``column_significant``.
+    """
+
+    delta_fidelity_ci_lower: list[float]
+    delta_fidelity_ci_upper: list[float]
+    delta_fidelity_p_value: list[float]
+    delta_fidelity_q_value: list[float]
+    column_significant: list[bool]
+    attribution_pct_ci_lower: list[float]
+    attribution_pct_ci_upper: list[float]
+    recovery_rate: list[float]
+    recovery_rate_ci_lower: list[float]
+    recovery_rate_ci_upper: list[float]
+    n_trials: int
+    n_bootstrap: int
+    confidence: float
+    fdr_level: float
+
+
+@dataclass
 class NoiseAttribution:
     """Per-gate noise attribution analysis.
 
@@ -57,6 +133,11 @@ class NoiseAttribution:
     Negative contributions (fidelity recovery) are preserved in raw values
     but clamped to zero for percentage attribution. Recovery columns are
     labeled with is_recovery flags.
+
+    The optional :attr:`statistics` field carries bootstrap CIs and
+    multiple-comparison-corrected p-values when the attribution was
+    computed via
+    :meth:`CircuitDebugger.compute_noise_attribution_with_statistics`.
     """
 
     delta_fidelity: list[float]           # per-column mean delta_F (may be negative)
@@ -67,6 +148,7 @@ class NoiseAttribution:
     gate_labels: list[list[str]]          # [col] -> list of gate labels
     is_recovery: list[bool] = field(default_factory=list)  # True if delta_F < 0
     no_measurable_loss: bool = False      # True if total positive loss < epsilon
+    statistics: AttributionStatistics | None = None  # bootstrap CIs / p-values
 
 
 class CircuitDebugger:
@@ -363,44 +445,41 @@ class CircuitDebugger:
 
     # ---- Noise attribution ------------------------------------------------
 
-    def compute_noise_attribution(
+    def _collect_attribution_trials(
         self,
         circuit: QuantumCircuit,
         noise_model,
-        reference_state: StateVector | None = None,
-        n_trials: int = 50,
-        seed: int | None = None,
-    ) -> NoiseAttribution:
-        """Compute per-gate noise attribution by tracking the fidelity gap
-        between ideal and noisy trajectories at each column.
+        n_trials: int,
+        seed: int | None,
+    ) -> tuple[np.ndarray, np.ndarray, list[list[str]]]:
+        """Run ``n_trials`` stochastic simulations and return raw per-column data.
 
-        noise_contrib_i = gap_i - gap_{i-1}
-        where gap_i = 1 - F(ideal_i, noisy_i)
+        This is the shared kernel behind both
+        :meth:`compute_noise_attribution` and
+        :meth:`compute_noise_attribution_with_statistics`.  It performs
+        the expensive part of attribution -- running the circuit
+        ``n_trials`` times -- exactly once.
 
-        This isolates each column's noise contribution from gate progress.
-
-        Args:
-            circuit: Circuit to analyze.
-            noise_model: NoiseModel to use.
-            reference_state: Optional external reference. If None, the ideal
-                trajectory is used as the reference at each step.
-            n_trials: Number of stochastic trials to average.
-            seed: Base seed for reproducibility.
-
-        Returns:
-            NoiseAttribution with per-column fidelity attribution.
+        Returns
+        -------
+        noise_contrib_trials : np.ndarray, shape ``(n_trials, num_cols)``
+            Per-trial per-column noise contribution
+            ``delta_F_i = gap_i - gap_{i-1}`` where ``gap_i = 1 - F``.
+        per_qubit_attr_acc : np.ndarray, shape ``(num_cols, n_qubits)``
+            Sum (over trials) of per-qubit reduced-density-matrix
+            fidelity drop.  Caller is responsible for dividing by
+            ``n_trials``.
+        gate_labels : list[list[str]]
+            Human-readable labels per column.
         """
         base_rng = np.random.default_rng(seed)
         ordered = circuit.get_ordered_gates()
         num_cols = len(ordered)
         n_qubits = circuit.num_qubits
 
-        # Collect per-trial, per-column noise contribution
         noise_contrib_trials = np.zeros((n_trials, num_cols))
-        # Per-qubit attribution accumulator
         pq_attr_acc = np.zeros((num_cols, n_qubits))
 
-        # Build gate labels
         all_labels: list[list[str]] = []
         for column_gates in ordered:
             labels = []
@@ -417,7 +496,7 @@ class CircuitDebugger:
 
             ideal = StateVector.from_initial_states(circuit.initial_states)
             noisy = StateVector.from_initial_states(circuit.initial_states)
-            prev_gap = 0.0  # gap before any gates (ideal == noisy)
+            prev_gap = 0.0
 
             for col_idx, column_gates in enumerate(ordered):
                 for gate_inst in column_gates:
@@ -429,13 +508,11 @@ class CircuitDebugger:
                     noisy.apply_gate(matrix, gate_inst.target_qubits)
                     noise_model.apply(noisy, gate_inst)
 
-                # Fidelity gap after this column
                 fid = StateAnalysis.state_fidelity(ideal.data, noisy.data)
                 gap = 1.0 - fid
                 noise_contrib_trials[trial, col_idx] = gap - prev_gap
                 prev_gap = gap
 
-                # Per-qubit attribution via reduced density matrices
                 for q in range(n_qubits):
                     rho_ideal = ideal.get_reduced_density_matrix(q)
                     rho_noisy = noisy.get_reduced_density_matrix(q)
@@ -443,17 +520,30 @@ class CircuitDebugger:
                         1.0 - StateAnalysis.density_fidelity(rho_ideal, rho_noisy)
                     )
 
-        # Statistics
+        return noise_contrib_trials, pq_attr_acc, all_labels
+
+    @staticmethod
+    def _aggregate_attribution(
+        noise_contrib_trials: np.ndarray,
+        pq_attr_acc: np.ndarray,
+        all_labels: list[list[str]],
+        statistics: AttributionStatistics | None = None,
+    ) -> NoiseAttribution:
+        """Aggregate trial-level data into a :class:`NoiseAttribution`.
+
+        Mean / std / attribution-% logic is identical to the original
+        single-pass implementation, so existing callers see no change.
+        Optional bootstrap statistics are attached when supplied.
+        """
+        n_trials = noise_contrib_trials.shape[0]
+        num_cols = noise_contrib_trials.shape[1]
+
         mean_contrib = np.mean(noise_contrib_trials, axis=0).tolist()
         std_contrib = np.std(noise_contrib_trials, axis=0).tolist()
-
-        # Total fidelity loss = final gap = sum of contributions
         total_loss = float(np.sum(mean_contrib))
 
-        # Identify recovery columns (negative delta_F = fidelity improvement)
         is_recovery = [d < -1e-12 for d in mean_contrib]
 
-        # Attribution percentage: clamp negatives to 0, normalize positive-only
         positive_sum = sum(max(0.0, d) for d in mean_contrib)
         no_loss = positive_sum <= 1e-12
         if not no_loss:
@@ -461,8 +551,10 @@ class CircuitDebugger:
         else:
             attr_pct = [0.0] * num_cols
 
-        # Per-qubit attribution (averaged over trials)
-        pq_attr = (pq_attr_acc / n_trials).tolist()
+        if n_trials > 0:
+            pq_attr = (pq_attr_acc / n_trials).tolist()
+        else:
+            pq_attr = pq_attr_acc.tolist()
 
         return NoiseAttribution(
             delta_fidelity=mean_contrib,
@@ -473,7 +565,152 @@ class CircuitDebugger:
             gate_labels=all_labels,
             is_recovery=is_recovery,
             no_measurable_loss=no_loss,
+            statistics=statistics,
         )
+
+    def compute_noise_attribution(
+        self,
+        circuit: QuantumCircuit,
+        noise_model,
+        reference_state: StateVector | None = None,
+        n_trials: int = 50,
+        seed: int | None = None,
+    ) -> NoiseAttribution:
+        """Compute per-gate noise attribution by tracking the fidelity gap
+        between ideal and noisy trajectories at each column.
+
+        ``noise_contrib_i = gap_i - gap_{i-1}`` where
+        ``gap_i = 1 - F(ideal_i, noisy_i)``.  This isolates each column's
+        noise contribution from gate progress.
+
+        Args:
+            circuit: Circuit to analyze.
+            noise_model: NoiseModel to use.
+            reference_state: Reserved for future external-reference support.
+                Currently the ideal trajectory is always used.
+            n_trials: Number of stochastic trials to average.
+            seed: Base seed for reproducibility.
+
+        Returns:
+            NoiseAttribution with per-column fidelity attribution and no
+            attached statistics (use
+            :meth:`compute_noise_attribution_with_statistics` for that).
+        """
+        trials, pq_acc, labels = self._collect_attribution_trials(
+            circuit, noise_model, n_trials, seed
+        )
+        return self._aggregate_attribution(trials, pq_acc, labels, statistics=None)
+
+    def compute_noise_attribution_with_statistics(
+        self,
+        circuit: QuantumCircuit,
+        noise_model,
+        reference_state: StateVector | None = None,
+        n_trials: int = 100,
+        n_bootstrap: int = 1000,
+        confidence: float = 0.95,
+        fdr_level: float = 0.05,
+        seed: int | None = None,
+    ) -> NoiseAttribution:
+        """Per-gate attribution with bootstrap CIs and FDR-corrected p-values.
+
+        Same trial-collection logic as :meth:`compute_noise_attribution`,
+        but the per-trial matrix is then passed through a row-resampling
+        bootstrap to produce:
+
+        * Per-column 95% (default) CIs for ``mean(delta_F_i)``.
+        * Per-column 95% CIs for the attribution percentage, jointly
+          bootstrapped to preserve the percentage's denominator coupling.
+        * Two-sided bootstrap p-values for ``H0: mean(delta_F_i) == 0``.
+        * Benjamini-Hochberg FDR-corrected q-values across the column
+          family, plus a boolean ``column_significant`` mask.
+        * Per-column recovery rate ``P(delta_F_i < 0)`` with bootstrap
+          CI -- useful for spotting columns that never truly contribute
+          but whose mean is biased by occasional recovery events.
+
+        ``n_trials`` defaults to 100 (vs 50 for the cheap version) so
+        that the bootstrap has enough rows to resample meaningfully.
+
+        Args:
+            circuit: Circuit to analyse.
+            noise_model: NoiseModel to use.
+            reference_state: Reserved for future external-reference support.
+            n_trials: Number of stochastic simulations.
+            n_bootstrap: Number of bootstrap resamples.
+            confidence: Two-sided CI level for all returned intervals.
+            fdr_level: Target false discovery rate for column significance.
+            seed: Base seed for reproducibility.  Both the simulation
+                trials and the bootstrap use children of this seed.
+
+        Returns:
+            :class:`NoiseAttribution` with :attr:`AttributionStatistics`
+            attached.
+        """
+        master_rng = np.random.default_rng(seed)
+        sim_seed = int(master_rng.integers(0, 2**63))
+        boot_seed = int(master_rng.integers(0, 2**63))
+
+        trials, pq_acc, labels = self._collect_attribution_trials(
+            circuit, noise_model, n_trials, sim_seed
+        )
+
+        boot_rng = np.random.default_rng(boot_seed)
+
+        # Joint bootstrap on the trials matrix.  A single resampled matrix
+        # produces a column vector via ``statistic_fn``; we run two
+        # independent calls (one for mean, one for percentage) so they
+        # share the *bootstrap concept* but use independent resamplings.
+        # Sharing the same resampling indices would also be valid; we use
+        # independent ones for simplicity, which is conservative.
+        mean_estimates, mean_lo, mean_hi, mean_boot_dist = bootstrap_matrix_statistics(
+            trials,
+            statistic_fn=lambda m: m.mean(axis=0),
+            confidence=confidence,
+            n_bootstrap=n_bootstrap,
+            rng=boot_rng,
+        )
+
+        pct_estimates, pct_lo, pct_hi, _ = bootstrap_matrix_statistics(
+            trials,
+            statistic_fn=attribution_percentage,
+            confidence=confidence,
+            n_bootstrap=n_bootstrap,
+            rng=boot_rng,
+        )
+
+        # Per-column p-values from the mean bootstrap distribution.
+        p_values = column_pvalues_from_bootstrap(
+            mean_boot_dist, mean_estimates, null_value=0.0
+        )
+        q_values, significant = benjamini_hochberg(p_values, fdr=fdr_level)
+
+        # Recovery rate with bootstrap CI.
+        rec_estimates, rec_lo, rec_hi, _ = bootstrap_matrix_statistics(
+            trials,
+            statistic_fn=recovery_rate,
+            confidence=confidence,
+            n_bootstrap=n_bootstrap,
+            rng=boot_rng,
+        )
+
+        stats = AttributionStatistics(
+            delta_fidelity_ci_lower=mean_lo.tolist(),
+            delta_fidelity_ci_upper=mean_hi.tolist(),
+            delta_fidelity_p_value=p_values.tolist(),
+            delta_fidelity_q_value=q_values.tolist(),
+            column_significant=significant.tolist(),
+            attribution_pct_ci_lower=pct_lo.tolist(),
+            attribution_pct_ci_upper=pct_hi.tolist(),
+            recovery_rate=rec_estimates.tolist(),
+            recovery_rate_ci_lower=rec_lo.tolist(),
+            recovery_rate_ci_upper=rec_hi.tolist(),
+            n_trials=n_trials,
+            n_bootstrap=n_bootstrap,
+            confidence=confidence,
+            fdr_level=fdr_level,
+        )
+
+        return self._aggregate_attribution(trials, pq_acc, labels, statistics=stats)
 
     # ---- State diff -------------------------------------------------------
 

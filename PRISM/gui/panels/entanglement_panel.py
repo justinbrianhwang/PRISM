@@ -22,8 +22,8 @@ from matplotlib.figure import Figure
 import matplotlib.colors as mcolors
 import matplotlib.cm as mcm
 
-from quantum_sim.engine.state_vector import StateVector
-from quantum_sim.engine.analysis import StateAnalysis
+from PRISM.engine.state_vector import StateVector
+from PRISM.engine.analysis import StateAnalysis
 
 # Distinct per-qubit node colors (same palette used elsewhere in the project)
 _NODE_COLORS = [

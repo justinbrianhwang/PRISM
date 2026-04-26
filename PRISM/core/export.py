@@ -102,7 +102,7 @@ class CircuitExporter:
             QRectF(0, 0, scene_rect.width(), scene_rect.height())
         )
         generator.setTitle("Quantum Circuit")
-        generator.setDescription("Exported from Quantum Circuit Simulator")
+        generator.setDescription("Exported from PRISM")
 
         painter = QPainter(generator)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)

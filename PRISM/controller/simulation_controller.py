@@ -7,10 +7,10 @@ from typing import Any
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal, pyqtSlot, QMutex, QWaitCondition
 
-from quantum_sim.engine.circuit import QuantumCircuit
-from quantum_sim.engine.simulator import Simulator, SimulationResult
-from quantum_sim.engine.state_vector import StateVector
-from quantum_sim.engine.noise import NoiseModel
+from PRISM.engine.circuit import QuantumCircuit
+from PRISM.engine.simulator import Simulator, SimulationResult
+from PRISM.engine.state_vector import StateVector
+from PRISM.engine.noise import NoiseModel
 
 
 class SimulationWorker(QObject):
@@ -137,7 +137,7 @@ class SimulationWorker(QObject):
             return
 
         # After step-by-step, run measurement sampling
-        from quantum_sim.engine.measurement import MeasurementEngine
+        from PRISM.engine.measurement import MeasurementEngine
 
         last_state = StateVector(self._circuit.num_qubits)
         # Re-run to get the final state for sampling

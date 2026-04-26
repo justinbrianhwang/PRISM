@@ -22,7 +22,7 @@ from PyQt6.QtWidgets import (
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from quantum_sim.engine.qec import (
+from PRISM.engine.qec import (
     QECSimulator, QECResult, ThresholdPoint,
     BitFlipCode, PhaseFlipCode, SteaneCode,
     AVAILABLE_CODES,

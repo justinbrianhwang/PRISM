@@ -23,12 +23,12 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtGui import QBrush, QColor, QPen
 from PyQt6.QtCore import QPointF, QRectF, Qt, pyqtSignal
 
-from quantum_sim.engine.circuit import GateInstance, QuantumCircuit
-from quantum_sim.engine.gates import GateType
-from quantum_sim.engine.gate_registry import GateRegistry
+from PRISM.engine.circuit import GateInstance, QuantumCircuit
+from PRISM.engine.gates import GateType
+from PRISM.engine.gate_registry import GateRegistry
 
-from quantum_sim.gui.circuit_editor.wire_item import WireItem
-from quantum_sim.gui.circuit_editor.gate_items import (
+from PRISM.gui.circuit_editor.wire_item import WireItem
+from PRISM.gui.circuit_editor.gate_items import (
     GRID_SIZE,
     WIRE_Y_SPACING,
     GATE_WIDTH,

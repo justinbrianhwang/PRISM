@@ -1,4 +1,4 @@
-"""Main application window for the Quantum Circuit Simulator.
+"""Main application window for PRISM.
 
 Provides the top-level QMainWindow that coordinates all GUI components:
 menu bar, toolbar, circuit editor, dock panels, status bar, and
@@ -22,113 +22,113 @@ from PyQt6.QtWidgets import (
 )
 
 # --- Engine / Core imports (always available) ---
-from quantum_sim.engine.circuit import QuantumCircuit, GateInstance
-from quantum_sim.engine.gate_registry import GateRegistry
-from quantum_sim.engine.simulator import Simulator, SimulationResult
-from quantum_sim.engine.algorithms import AlgorithmTemplate
-from quantum_sim.engine.noise import NoiseModel
-from quantum_sim.engine.reference import ReferenceManager
-from quantum_sim.core.serialization import CircuitSerializer
-from quantum_sim.core.config import AppConfig
+from PRISM.engine.circuit import QuantumCircuit, GateInstance
+from PRISM.engine.gate_registry import GateRegistry
+from PRISM.engine.simulator import Simulator, SimulationResult
+from PRISM.engine.algorithms import AlgorithmTemplate
+from PRISM.engine.noise import NoiseModel
+from PRISM.engine.reference import ReferenceManager
+from PRISM.core.serialization import CircuitSerializer
+from PRISM.core.config import AppConfig
 
 # --- Theme manager ---
-from quantum_sim.gui.themes.theme_manager import ThemeManager
+from PRISM.gui.themes.theme_manager import ThemeManager
 
 # --- Panels (always available since we just created them) ---
-from quantum_sim.gui.panels.gate_palette import GatePalette
-from quantum_sim.gui.panels.properties_panel import PropertiesPanel
+from PRISM.gui.panels.gate_palette import GatePalette
+from PRISM.gui.panels.properties_panel import PropertiesPanel
 
 # --- Optional imports for components that may not yet exist ---
 # Circuit editor view and scene
 try:
-    from quantum_sim.gui.circuit_editor.view import CircuitView
-    from quantum_sim.gui.circuit_editor.scene import CircuitScene
+    from PRISM.gui.circuit_editor.view import CircuitView
+    from PRISM.gui.circuit_editor.scene import CircuitScene
 except ImportError:
     CircuitView = None  # type: ignore[assignment, misc]
     CircuitScene = None  # type: ignore[assignment, misc]
 
 # Circuit controller
 try:
-    from quantum_sim.controller.circuit_controller import CircuitController
+    from PRISM.controller.circuit_controller import CircuitController
 except ImportError:
     CircuitController = None  # type: ignore[assignment, misc]
 
 # Simulation controller
 try:
-    from quantum_sim.controller.simulation_controller import SimulationController
+    from PRISM.controller.simulation_controller import SimulationController
 except ImportError:
     SimulationController = None  # type: ignore[assignment, misc]
 
 # Visualization panels
 try:
-    from quantum_sim.gui.panels.state_vector_panel import StateVectorPanel
+    from PRISM.gui.panels.state_vector_panel import StateVectorPanel
 except ImportError:
     StateVectorPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.bloch_sphere import BlochSphereWidget
+    from PRISM.gui.panels.bloch_sphere import BlochSphereWidget
 except ImportError:
     BlochSphereWidget = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.histogram_panel import HistogramPanel
+    from PRISM.gui.panels.histogram_panel import HistogramPanel
 except ImportError:
     HistogramPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.density_matrix_panel import DensityMatrixPanel
+    from PRISM.gui.panels.density_matrix_panel import DensityMatrixPanel
 except ImportError:
     DensityMatrixPanel = None  # type: ignore[assignment, misc]
 
 # New research panels
 try:
-    from quantum_sim.gui.panels.entanglement_panel import EntanglementPanel
+    from PRISM.gui.panels.entanglement_panel import EntanglementPanel
 except ImportError:
     EntanglementPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.entropy_panel import EntropyPanel
+    from PRISM.gui.panels.entropy_panel import EntropyPanel
 except ImportError:
     EntropyPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.fidelity_panel import FidelityPanel
+    from PRISM.gui.panels.fidelity_panel import FidelityPanel
 except ImportError:
     FidelityPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.analysis_panel import AnalysisPanel
+    from PRISM.gui.panels.analysis_panel import AnalysisPanel
 except ImportError:
     AnalysisPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.debugger_panel import DebuggerPanel
+    from PRISM.gui.panels.debugger_panel import DebuggerPanel
 except ImportError:
     DebuggerPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.comparison_panel import ComparisonPanel
+    from PRISM.gui.panels.comparison_panel import ComparisonPanel
 except ImportError:
     ComparisonPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.optimizer_panel import OptimizerPanel
+    from PRISM.gui.panels.optimizer_panel import OptimizerPanel
 except ImportError:
     OptimizerPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.qec_panel import QECPanel
+    from PRISM.gui.panels.qec_panel import QECPanel
 except ImportError:
     QECPanel = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.gui.panels.resource_monitor import ResourceMonitorPanel
+    from PRISM.gui.panels.resource_monitor import ResourceMonitorPanel
 except ImportError:
     ResourceMonitorPanel = None  # type: ignore[assignment, misc]
 
 # Undo commands
 try:
-    from quantum_sim.gui.commands.circuit_commands import (
+    from PRISM.gui.commands.circuit_commands import (
         AddGateCommand, RemoveGateCommand, MoveGateCommand,
         ChangeGateParamsCommand, ClearCircuitCommand,
         SetQubitCountCommand,
@@ -141,24 +141,24 @@ except ImportError:
 
 # Noise configuration dialog
 try:
-    from quantum_sim.gui.dialogs.noise_config_dialog import NoiseConfigDialog
+    from PRISM.gui.dialogs.noise_config_dialog import NoiseConfigDialog
 except ImportError:
     NoiseConfigDialog = None  # type: ignore[assignment, misc]
 
 # Experiment / Seed / Bridge
 try:
-    from quantum_sim.core.experiment import ExperimentConfig, SeedManager
+    from PRISM.core.experiment import ExperimentConfig, SeedManager
 except ImportError:
     ExperimentConfig = None  # type: ignore[assignment, misc]
     SeedManager = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.engine.benchmarks import BenchmarkSuite
+    from PRISM.engine.benchmarks import BenchmarkSuite
 except ImportError:
     BenchmarkSuite = None  # type: ignore[assignment, misc]
 
 try:
-    from quantum_sim.bridge.server import BridgeServer, BridgeCommandHandler
+    from PRISM.bridge.server import BridgeServer, BridgeCommandHandler
 except ImportError:
     BridgeServer = None  # type: ignore[assignment, misc]
     BridgeCommandHandler = None  # type: ignore[assignment, misc]
@@ -168,7 +168,7 @@ logger = logging.getLogger(__name__)
 
 
 class MainWindow(QMainWindow):
-    """The main application window for Quantum Circuit Simulator.
+    """The main application window for PRISM.
 
     Coordinates:
     - Menu bar with File, Edit, Circuit, Simulation, View, Help menus
@@ -183,7 +183,7 @@ class MainWindow(QMainWindow):
     - File save/load via CircuitSerializer
     """
 
-    APP_NAME = "Quantum Circuit Simulator"
+    APP_NAME = "PRISM"
     FILE_FILTER = "Quantum Circuit Files (*.qsim);;JSON Files (*.json);;All Files (*)"
 
     def __init__(self, app: QApplication, parent: QWidget | None = None):
@@ -399,7 +399,7 @@ class MainWindow(QMainWindow):
 
         # -- Help actions --
         self._action_about = QAction("&About", self)
-        self._action_about.setStatusTip("About Quantum Circuit Simulator")
+        self._action_about.setStatusTip("About PRISM")
         self._action_about.triggered.connect(self._on_about)
 
     # ------------------------------------------------------------------
@@ -852,11 +852,22 @@ class MainWindow(QMainWindow):
         self._status_seed = QLabel()
         self._status_bridge = QLabel("Bridge: Off")
 
+        # Author / project website -- permanent widget on the right side
+        # of the status bar.  Uses a QLabel with rich text so the URL is
+        # rendered as a clickable hyperlink without an extra mouse click.
+        self._status_site = QLabel(
+            '<a href="https://www.sjhwang.com" '
+            'style="color: #89b4fa; text-decoration: none;">www.sjhwang.com</a>'
+        )
+        self._status_site.setOpenExternalLinks(True)
+        self._status_site.setToolTip("Open www.sjhwang.com in your browser")
+
         self._status_bar.addPermanentWidget(self._status_qubits)
         self._status_bar.addPermanentWidget(self._status_gates)
         self._status_bar.addPermanentWidget(self._status_sim)
         self._status_bar.addPermanentWidget(self._status_seed)
         self._status_bar.addPermanentWidget(self._status_bridge)
+        self._status_bar.addPermanentWidget(self._status_site)
 
     def _update_status_bar(self):
         """Refresh status bar labels from current circuit state."""
@@ -1373,7 +1384,7 @@ class MainWindow(QMainWindow):
             state, col_idx = next(self._step_generator)
 
             # Build a partial result for visualization
-            from quantum_sim.engine.measurement import MeasurementEngine
+            from PRISM.engine.measurement import MeasurementEngine
             counts = MeasurementEngine.sample(state, self._config.default_shots)
             partial_result = SimulationResult(
                 final_state=state,
@@ -1481,7 +1492,7 @@ class MainWindow(QMainWindow):
                 )
 
         # Fallback: simple dialog to enable/disable depolarizing noise
-        from quantum_sim.engine.noise import DepolarizingNoise
+        from PRISM.engine.noise import DepolarizingNoise
 
         if self._noise_model is not None:
             result = QMessageBox.question(
@@ -1702,7 +1713,7 @@ class MainWindow(QMainWindow):
             return
         if gate_def.num_params == 0:
             return
-        from quantum_sim.gui.dialogs.gate_param_dialog import GateParamDialog
+        from PRISM.gui.dialogs.gate_param_dialog import GateParamDialog
         dialog = GateParamDialog(gate_def, gate.params, self)
         if dialog.exec():
             gate.params = dialog.get_params()
@@ -1903,7 +1914,7 @@ class MainWindow(QMainWindow):
 
             # Restore circuit
             if exp.circuit is not None:
-                from quantum_sim.engine.circuit import QuantumCircuit
+                from PRISM.engine.circuit import QuantumCircuit
                 self._circuit = QuantumCircuit.from_dict(exp.circuit)
                 self._qubit_spinbox.setValue(self._circuit.num_qubits)
                 self._properties_panel.set_num_qubits(self._circuit.num_qubits)
@@ -2014,8 +2025,8 @@ class MainWindow(QMainWindow):
     def _on_about(self):
         """Show the About dialog."""
         QMessageBox.about(
-            self, "About Quantum Circuit Simulator",
-            "<h2>Quantum Circuit Simulator</h2>"
+            self, "About PRISM",
+            "<h2>PRISM</h2>"
             "<p>A research-grade visual quantum circuit simulator built with PyQt6.</p>"
             "<p><b>Core Features:</b></p>"
             "<ul>"

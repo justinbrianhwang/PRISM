@@ -14,11 +14,11 @@ from pathlib import Path
 
 import numpy as np
 
-from quantum_sim.engine.circuit import QuantumCircuit
+from PRISM.engine.circuit import QuantumCircuit
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from quantum_sim.engine.simulator import SimulationResult
+    from PRISM.engine.simulator import SimulationResult
 
 
 # ---------------------------------------------------------------------------
@@ -179,7 +179,7 @@ class ExperimentConfig:
         """
         result_payload = result
         try:
-            from quantum_sim.engine.simulator import SimulationResult
+            from PRISM.engine.simulator import SimulationResult
             if isinstance(result, SimulationResult):
                 result_payload = {
                     "measurement_counts": {

@@ -9,6 +9,93 @@ from .circuit import QuantumCircuit, GateInstance
 class AlgorithmTemplate:
     """Factory for common quantum algorithm circuits."""
 
+    # ------------------------------------------------------------------
+    # Benchmark circuits used by the noise-attribution paper figures.
+    # These deliberately omit final ``Measure`` gates so that
+    # ``compute_noise_attribution`` does not produce phantom zero-weight
+    # columns at the tail of every plot.
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def qaoa_maxcut_4cycle(
+        gamma: float = 0.7,
+        beta: float = 0.4,
+        parallel_edges: bool = True,
+    ) -> QuantumCircuit:
+        """Single-layer QAOA for MaxCut on the 4-vertex cycle graph C_4.
+
+        Vertices ``0-3`` with edges ``{(0,1), (1,2), (2,3), (3,0)}``.
+
+        The cost-Hamiltonian unitary
+        ``exp(-i gamma sum_<ij> Z_i Z_j)`` is implemented with the
+        canonical CNOT - Rz(2 gamma) - CNOT decomposition per edge.  When
+        ``parallel_edges`` is ``True`` (the default), edges that share no
+        qubit are placed in the same column to give a more compact
+        attribution profile (8 columns vs 14).
+
+        Args:
+            gamma: Cost Hamiltonian phase angle.
+            beta: Mixer phase angle.
+            parallel_edges: Pack non-conflicting edges into shared
+                columns when ``True``.
+
+        Returns:
+            A 4-qubit ``QuantumCircuit`` with no measurement gates.
+        """
+        qc = QuantumCircuit(num_qubits=4)
+
+        # Column 0: Hadamard on every qubit -- uniform superposition.
+        for q in range(4):
+            qc.add_gate(GateInstance("H", [q], [], 0))
+
+        if parallel_edges:
+            # Round 1: edges (0,1) and (2,3) share no qubit -> co-column.
+            # Round 2: edges (1,2) and (3,0) share no qubit -> co-column.
+            edge_groups = [
+                [(0, 1), (2, 3)],
+                [(1, 2), (3, 0)],
+            ]
+        else:
+            edge_groups = [[(0, 1)], [(1, 2)], [(2, 3)], [(3, 0)]]
+
+        col = 1
+        for group in edge_groups:
+            # CNOT layer
+            for ctrl, tgt in group:
+                qc.add_gate(GateInstance("CNOT", [ctrl, tgt], [], col))
+            col += 1
+            # Rz(2 gamma) on each edge's target
+            for _ctrl, tgt in group:
+                qc.add_gate(GateInstance("Rz", [tgt], [2.0 * gamma], col))
+            col += 1
+            # CNOT undo
+            for ctrl, tgt in group:
+                qc.add_gate(GateInstance("CNOT", [ctrl, tgt], [], col))
+            col += 1
+
+        # Mixer layer: Rx(2 beta) on every qubit, all in one column.
+        for q in range(4):
+            qc.add_gate(GateInstance("Rx", [q], [2.0 * beta], col))
+
+        return qc
+
+    @staticmethod
+    def bit_flip_encoder() -> QuantumCircuit:
+        """3-qubit bit-flip repetition encoder for ``|0>_L``.
+
+        Produces ``|000>`` (which is the logical zero codeword) from the
+        all-zero initial state.  Two CNOT columns; lets the attribution
+        analysis see the entanglement-spreading dynamics.
+        """
+        qc = QuantumCircuit(num_qubits=3)
+        qc.add_gate(GateInstance("CNOT", [0, 1], [], 0))
+        qc.add_gate(GateInstance("CNOT", [0, 2], [], 1))
+        return qc
+
+    # ------------------------------------------------------------------
+    # GUI templates (with measurements)
+    # ------------------------------------------------------------------
+
     @staticmethod
     def bell_state(qubit0: int = 0, qubit1: int = 1) -> QuantumCircuit:
         """Bell state |Phi+> = (|00> + |11>) / sqrt(2)."""
@@ -294,6 +381,10 @@ class AlgorithmTemplate:
     def list_templates() -> list[dict[str, str]]:
         """Returns list of available algorithm templates."""
         return [
+            {"name": "qaoa_maxcut_4cycle", "display": "QAOA MaxCut (4-cycle)",
+             "description": "Single-layer QAOA for MaxCut on the 4-vertex cycle graph"},
+            {"name": "bit_flip_encoder", "display": "Bit-flip Encoder [3,1,1]",
+             "description": "3-qubit repetition code encoder for |0>_L (no measurements)"},
             {"name": "bell_state", "display": "Bell State",
              "description": "Creates a Bell state |Phi+> = (|00> + |11>) / sqrt(2)"},
             {"name": "ghz_state", "display": "GHZ State",

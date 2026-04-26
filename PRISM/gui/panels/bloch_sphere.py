@@ -19,7 +19,7 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401 (required for 3D projection)
 
-from quantum_sim.engine.state_vector import StateVector
+from PRISM.engine.state_vector import StateVector
 
 # Distinct colors for per-qubit state vectors
 _QUBIT_COLORS = [

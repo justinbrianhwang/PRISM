@@ -14,7 +14,7 @@ from PyQt6.QtWidgets import (
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from quantum_sim.engine.state_vector import StateVector
+from PRISM.engine.state_vector import StateVector
 
 logger = logging.getLogger(__name__)
 
@@ -211,7 +211,7 @@ class DensityMatrixPanel(QWidget):
         QApplication.processEvents()
 
         try:
-            from quantum_sim.engine.simulator import Simulator
+            from PRISM.engine.simulator import Simulator
             sim = Simulator(noise_model=self._noise_model)
             rho = sim.ensemble_density_matrix(
                 self._circuit, n_trials=n_trials, seed=42

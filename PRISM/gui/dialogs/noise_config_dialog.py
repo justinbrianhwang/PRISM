@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import (
     QWidget, QGroupBox, QTextEdit, QPushButton,
 )
 
-from quantum_sim.engine.noise import (
+from PRISM.engine.noise import (
     NoiseModel,
     BitFlipNoise,
     PhaseFlipNoise,

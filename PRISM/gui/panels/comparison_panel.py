@@ -26,9 +26,9 @@ from PyQt6.QtGui import QColor
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from quantum_sim.engine.circuit import QuantumCircuit, GateInstance
-from quantum_sim.engine.comparison import CircuitComparator, ComparisonResult
-from quantum_sim.core.serialization import CircuitSerializer
+from PRISM.engine.circuit import QuantumCircuit, GateInstance
+from PRISM.engine.comparison import CircuitComparator, ComparisonResult
+from PRISM.core.serialization import CircuitSerializer
 
 
 # Built-in template circuits for quick comparison

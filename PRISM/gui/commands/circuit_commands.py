@@ -19,10 +19,10 @@ from typing import TYPE_CHECKING
 
 from PyQt6.QtGui import QUndoCommand
 
-from quantum_sim.engine.circuit import GateInstance, QuantumCircuit
+from PRISM.engine.circuit import GateInstance, QuantumCircuit
 
 if TYPE_CHECKING:
-    from quantum_sim.gui.circuit_editor.scene import CircuitScene
+    from PRISM.gui.circuit_editor.scene import CircuitScene
 
 
 # =========================================================================

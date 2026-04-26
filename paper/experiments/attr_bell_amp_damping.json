@@ -1,0 +1,11 @@
+{
+  "version": "1.0",
+  "kind": "noise_attribution",
+  "circuit": "bell",
+  "noise": "amp_damping",
+  "n_trials": 120,
+  "n_bootstrap": 1000,
+  "confidence": 0.95,
+  "fdr_level": 0.05,
+  "seed": 20260428
+}

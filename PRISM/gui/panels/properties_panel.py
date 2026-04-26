@@ -16,9 +16,9 @@ from PyQt6.QtWidgets import (
     QGroupBox, QScrollArea, QSizePolicy,
 )
 
-from quantum_sim.engine.gate_registry import GateRegistry
-from quantum_sim.engine.gates import GateType, GateDefinition
-from quantum_sim.engine.circuit import GateInstance
+from PRISM.engine.gate_registry import GateRegistry
+from PRISM.engine.gates import GateType, GateDefinition
+from PRISM.engine.circuit import GateInstance
 
 
 class PropertiesPanel(QDockWidget):

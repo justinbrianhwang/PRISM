@@ -2,7 +2,7 @@
 
 Usage example::
 
-    from quantum_sim.bridge.client import SimulatorClient
+    from PRISM.bridge.client import SimulatorClient
 
     with SimulatorClient() as sim:
         sim.set_circuit(circuit_dict)

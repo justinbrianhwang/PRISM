@@ -19,8 +19,8 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from .protocol import BridgeMessage
 
 if TYPE_CHECKING:
-    from quantum_sim.engine.circuit import QuantumCircuit
-    from quantum_sim.engine.simulator import SimulationResult
+    from PRISM.engine.circuit import QuantumCircuit
+    from PRISM.engine.simulator import SimulationResult
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +82,7 @@ class BridgeCommandHandler:
         return BridgeMessage.ok_response(msg.id, self._circuit.to_dict())
 
     def _cmd_set_circuit(self, msg: BridgeMessage) -> BridgeMessage:
-        from quantum_sim.engine.circuit import QuantumCircuit
+        from PRISM.engine.circuit import QuantumCircuit
         circuit_dict = msg.params.get("circuit")
         if circuit_dict is None:
             return BridgeMessage.error_response(msg.id, "Missing 'circuit' param")
@@ -93,7 +93,7 @@ class BridgeCommandHandler:
         })
 
     def _cmd_add_gate(self, msg: BridgeMessage) -> BridgeMessage:
-        from quantum_sim.engine.circuit import GateInstance
+        from PRISM.engine.circuit import GateInstance
         if self._circuit is None:
             return BridgeMessage.error_response(msg.id, "No circuit loaded")
         p = msg.params
@@ -115,7 +115,7 @@ class BridgeCommandHandler:
         return BridgeMessage.ok_response(msg.id)
 
     def _cmd_run(self, msg: BridgeMessage) -> BridgeMessage:
-        from quantum_sim.engine.simulator import Simulator
+        from PRISM.engine.simulator import Simulator
         if self._circuit is None:
             return BridgeMessage.error_response(msg.id, "No circuit loaded")
 
@@ -166,7 +166,7 @@ class BridgeCommandHandler:
         })
 
     def _cmd_set_noise(self, msg: BridgeMessage) -> BridgeMessage:
-        from quantum_sim.engine.noise import NoiseModel
+        from PRISM.engine.noise import NoiseModel
         noise_dict = msg.params.get("noise_model")
         if noise_dict is None:
             return BridgeMessage.error_response(msg.id, "Missing 'noise_model' param")
@@ -178,7 +178,7 @@ class BridgeCommandHandler:
         return BridgeMessage.ok_response(msg.id)
 
     def _cmd_get_analysis(self, msg: BridgeMessage) -> BridgeMessage:
-        from quantum_sim.engine.analysis import StateAnalysis
+        from PRISM.engine.analysis import StateAnalysis
         if self._last_result is None:
             return BridgeMessage.error_response(msg.id, "No simulation result")
 
@@ -209,9 +209,9 @@ class BridgeCommandHandler:
 
     def _cmd_sweep_parameter(self, msg: BridgeMessage) -> BridgeMessage:
         """Sweep a noise parameter and collect results."""
-        from quantum_sim.engine.simulator import Simulator
-        from quantum_sim.engine.noise import NoiseModel, DepolarizingNoise
-        from quantum_sim.engine.analysis import StateAnalysis
+        from PRISM.engine.simulator import Simulator
+        from PRISM.engine.noise import NoiseModel, DepolarizingNoise
+        from PRISM.engine.analysis import StateAnalysis
 
         if self._circuit is None:
             return BridgeMessage.error_response(msg.id, "No circuit loaded")

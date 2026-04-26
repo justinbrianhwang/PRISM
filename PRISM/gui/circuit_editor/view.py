@@ -19,7 +19,7 @@ from PyQt6.QtGui import QPainter, QKeyEvent, QWheelEvent
 from PyQt6.QtCore import Qt, pyqtSignal
 
 if TYPE_CHECKING:
-    from quantum_sim.gui.circuit_editor.scene import CircuitScene
+    from PRISM.gui.circuit_editor.scene import CircuitScene
 
 # Zoom limits
 MIN_ZOOM = 0.25

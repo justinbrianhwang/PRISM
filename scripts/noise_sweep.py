@@ -16,12 +16,12 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 
-from quantum_sim.engine.circuit import QuantumCircuit, GateInstance
-from quantum_sim.engine.simulator import Simulator
-from quantum_sim.engine.noise import (
+from PRISM.engine.circuit import QuantumCircuit, GateInstance
+from PRISM.engine.simulator import Simulator
+from PRISM.engine.noise import (
     NoiseModel, BitFlipNoise, PhaseFlipNoise, DepolarizingNoise,
 )
-from quantum_sim.engine.analysis import StateAnalysis
+from PRISM.engine.analysis import StateAnalysis
 
 
 # ---- Predefined circuits --------------------------------------------------

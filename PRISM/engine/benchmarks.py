@@ -90,7 +90,7 @@ class BenchmarkSuite:
     @staticmethod
     def _qft3_benchmark() -> dict:
         """QFT on 3 qubits (using algorithm template if available)."""
-        from quantum_sim.engine.algorithms import AlgorithmTemplate
+        from PRISM.engine.algorithms import AlgorithmTemplate
 
         circuit = AlgorithmTemplate.quantum_fourier_transform(3)
         return {
@@ -175,8 +175,8 @@ class BenchmarkSuite:
         Returns:
             A list of :class:`BenchmarkResult` objects, one per benchmark.
         """
-        from quantum_sim.engine.simulator import Simulator
-        from quantum_sim.engine.analysis import StateAnalysis, ConvergenceAnalysis
+        from PRISM.engine.simulator import Simulator
+        from PRISM.engine.analysis import StateAnalysis, ConvergenceAnalysis
 
         rng = np.random.default_rng(seed)
         results: list[BenchmarkResult] = []

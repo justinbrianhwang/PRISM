@@ -1,4 +1,4 @@
-"""Simple about dialog for the Quantum Circuit Simulator."""
+"""Simple about dialog for PRISM."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
 class AboutDialog(QDialog):
     """Simple About dialog showing application name, version, and description."""
 
-    APP_NAME = "Quantum Circuit Simulator"
+    APP_NAME = "PRISM"
     APP_VERSION = "1.0.0"
     APP_DESCRIPTION = (
         "An interactive quantum circuit simulator with a visual circuit editor, "

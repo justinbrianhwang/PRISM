@@ -17,8 +17,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 
-from quantum_sim.engine.circuit import QuantumCircuit, GateInstance
-from quantum_sim.engine.optimizer import (
+from PRISM.engine.circuit import QuantumCircuit, GateInstance
+from PRISM.engine.optimizer import (
     ParameterizedCircuitConfig,
     CostFunction,
     CircuitOptimizer,

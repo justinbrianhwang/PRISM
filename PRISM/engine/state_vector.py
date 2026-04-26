@@ -62,15 +62,21 @@ class StateVector:
         result = np.tensordot(gate_tensor, state_tensor,
                               axes=(input_axes, target_qubits))
 
-        # Result has target axes moved to front; transpose back to canonical order
+        # After tensordot the result tensor has axes
+        #   [out_target[0], ..., out_target[k-1], non_target[0], ..., non_target[-1]]
+        # We want to permute so that final axis q holds the data for qubit q.
+        # Build ``current_axis_of_qubit[q]`` = the axis of ``result`` that
+        # currently holds qubit ``q``'s data, and pass it directly to
+        # ``np.transpose``: ``np.transpose(arr, perm)`` makes
+        # ``new.shape[i] == arr.shape[perm[i]]``, so ``perm[q] = current_axis_of_qubit[q]``.
         non_target = [i for i in range(n) if i not in target_qubits]
-        dest_order = [0] * n
+        current_axis_of_qubit = [0] * n
         for i, q in enumerate(target_qubits):
-            dest_order[q] = i
+            current_axis_of_qubit[q] = i
         for i, q in enumerate(non_target):
-            dest_order[q] = k + i
+            current_axis_of_qubit[q] = k + i
 
-        result = np.transpose(result, np.argsort(dest_order))
+        result = np.transpose(result, current_axis_of_qubit)
         self._data = result.reshape(2 ** n)
 
     def measure_qubit(self, qubit: int,

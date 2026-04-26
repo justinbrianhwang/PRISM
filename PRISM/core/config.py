@@ -21,7 +21,7 @@ class AppConfig:
     last_directory: str = ""
 
     _config_dir: Path = field(
-        default_factory=lambda: Path.home() / ".quantum_sim",
+        default_factory=lambda: Path.home() / ".PRISM",
         repr=False)
 
     @property

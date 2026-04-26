@@ -21,8 +21,8 @@ from PyQt6.QtWidgets import (
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from quantum_sim.engine.circuit import QuantumCircuit
-from quantum_sim.engine.optimizer import (
+from PRISM.engine.circuit import QuantumCircuit
+from PRISM.engine.optimizer import (
     ParameterizedCircuitConfig,
     CostFunction,
     CircuitOptimizer,

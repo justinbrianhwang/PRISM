@@ -1,15 +1,17 @@
-# Quantum Circuit Simulator
+# PRISM
 
-A research-grade quantum circuit simulator with an interactive GUI.
+> **P**er-gate **R**eproducible **I**nference for **S**tochastic **M**echanics
+
+A research-grade quantum circuit simulator with **statistically rigorous noise attribution**, an interactive 13-panel GUI, and a fully reproducible experiment-replay pipeline.
+
 Built entirely with **PyQt6 + NumPy + Matplotlib** -- no Qiskit, no Cirq, no additional dependencies.
 
-
-
-
-
+```bash
+./PRISM.sh                  # cross-platform launcher (preferred)
+python -m PRISM             # equivalent direct invocation
 ```
-python main.py
-```
+
+The launcher activates a project-local virtualenv (`.venv`, `venv`, or `.env`) if one is present and resolves a Python interpreter that has PyQt6 installed.
 
 ---
 
@@ -22,6 +24,7 @@ Build quantum circuits by dragging and dropping gates, run simulations with or w
 - **1-16 qubits** with efficient tensor contraction (not matrix multiplication)
 - **Noiseless and noisy simulation** with 4 noise channels + readout error
 - **13 visualization panels** covering state analysis, debugging, optimization, and QEC
+- **Statistical noise attribution** with bootstrap CIs, two-sided p-values, and Benjamini-Hochberg FDR correction (the PRISM contribution)
 - **Experiment automation** via CLI scripts with full seed-based reproducibility
 - **Live Bridge API** for external program control via TCP
 
@@ -68,13 +71,16 @@ pip install PyQt6 numpy matplotlib
 | **Reference state management** | All fidelity calculations use a centralized ReferenceManager. The noiseless simulation result is automatically stored as the baseline. **State reference** (noiseless \|psi>) is basis-independent and invalidated only when the circuit structure changes (via circuit hash). **Measurement references** (probability distributions) are lazily computed and cached per basis (Z/X/Y), so a basis change triggers a one-time recomputation, not a full invalidation. State fidelity (\|<psi\|phi>\|^2) is used for pure-state comparisons; Uhlmann fidelity is used when comparing reduced density matrices. |
 | **Seed management** | All operations (simulation, optimization, QEC, scripts) accept a seed for full reproducibility. |
 
-### Noise Attribution
+### Noise Attribution (PRISM core contribution)
 
 | Feature | Description |
 |---------|-------------|
 | **Per-gate fidelity gap tracking** | For each gate column i: gap_i = 1 - F(ideal_i, noisy_i), contribution_i = gap_i - gap_{i-1}. |
 | **Attribution percentage** | Each column's share of total fidelity loss. Negative contributions (where noise coincidentally recovers fidelity) are flagged as "recovery" and clamped to 0% for normalization. If total positive loss < epsilon, attribution is reported as 0% with a "no measurable loss" indicator. |
-| **Statistical reporting** | Mean and standard deviation of fidelity drop per column, averaged over configurable trials (10-500). |
+| **Bootstrap CIs (Phase 1A)** | `compute_noise_attribution_with_statistics()` returns row-resampling bootstrap confidence intervals for both per-column delta_F and attribution percentages. Joint resampling preserves the percentage's denominator coupling so per-column CIs are not biased toward independence. |
+| **Two-sided p-values** | Each column's contribution is tested against H0: mean(delta_F) = 0. p-values are floored at 1 / n_bootstrap to avoid the meaningless "p = 0" artifact of finite resampling. |
+| **Benjamini-Hochberg FDR correction** | Family-wise q-values across all columns. `column_significant` flags columns whose contribution survives multiple-comparison correction at the configured FDR level. |
+| **Recovery rate analysis** | Per-column empirical P(delta_F < 0) with bootstrap CI. Distinguishes columns with truly small contribution from those whose mean is biased by occasional recovery events. |
 | **Per-qubit breakdown** | Reduced density matrix fidelity per qubit per column. |
 
 ### Entanglement Event Detection
@@ -237,42 +243,53 @@ Memory formula: 2^n * 16 bytes (complex128). At 28 qubits, the state vector alon
 ## Architecture
 
 ```
-quantum_sim/
-  engine/               # Pure NumPy engine (no GUI dependencies)
-    circuit.py            # QuantumCircuit, GateInstance, compute_layers(), circuit_hash()
-    simulator.py          # Simulator (run, step-by-step, ensemble_density_matrix)
-    state_vector.py       # StateVector with tensor contraction
-    gates.py              # Gate matrices (H, X, Y, Z, Rx, Ry, Rz, U3, CNOT, ...)
-    noise.py              # NoiseModel, 4 channels, ReadoutError (shot + distribution)
-    measurement.py        # MeasurementEngine, MeasurementBasis (Z/X/Y)
-    analysis.py           # StateAnalysis, EntanglementEventDetector (hysteresis)
-    debugger.py           # CircuitDebugger, NoiseAttribution (recovery-aware)
-    comparison.py         # CircuitComparator, ComparisonResult
-    optimizer.py          # CircuitOptimizer, BarrenPlateauAnalysis (layer-wise)
-    qec.py                # 3 QEC codes, QECSimulator (3 logical error metrics)
-    reference.py          # ReferenceManager (auto-invalidation via circuit hash)
+PRISM/
+  __main__.py             # Entry point (run via `python -m PRISM`)
+  engine/                 # Pure NumPy engine (no GUI dependencies)
+    circuit.py              # QuantumCircuit, GateInstance, compute_layers(), circuit_hash()
+    simulator.py            # Simulator (run, step-by-step, ensemble_density_matrix)
+    state_vector.py         # StateVector with tensor contraction
+    gates.py                # Gate matrices (H, X, Y, Z, Rx, Ry, Rz, U3, CNOT, ...)
+    noise.py                # NoiseModel, 4 channels, ReadoutError (shot + distribution)
+    measurement.py          # MeasurementEngine, MeasurementBasis (Z/X/Y)
+    analysis.py             # StateAnalysis, EntanglementEventDetector (hysteresis)
+    debugger.py             # CircuitDebugger, NoiseAttribution + AttributionStatistics
+    statistics.py           # Bootstrap CI / p-values / Benjamini-Hochberg FDR
+    comparison.py           # CircuitComparator, ComparisonResult
+    optimizer.py            # CircuitOptimizer, BarrenPlateauAnalysis (layer-wise)
+    qec.py                  # 3 QEC codes, QECSimulator (3 logical error metrics)
+    reference.py            # ReferenceManager (auto-invalidation via circuit hash)
   gui/
-    main_window.py        # Main window (13 tabs, menus, toolbar)
-    circuit_editor/       # QGraphicsScene-based circuit editor
-    panels/               # 13 visualization panels
-    dialogs/              # Configuration dialogs
-    themes/               # Dark / Light theme
-    commands/             # Undo/redo
-  controller/             # MVC controllers
-  core/                   # Serialization, config, SeedManager
-  bridge/                 # Live Bridge API server (TCP, port 9876)
-scripts/                  # CLI experiment automation
-  noise_sweep.py          # Noise probability sweep
-  vqe_benchmark.py        # VQE optimization benchmark
-  qec_threshold.py        # Multi-code QEC threshold analysis
-main.py                   # Entry point
+    main_window.py          # Main window (13 tabs, menus, toolbar)
+    circuit_editor/         # QGraphicsScene-based circuit editor
+    panels/                 # 13 visualization panels
+    dialogs/                # Configuration dialogs
+    themes/                 # Dark / Light theme
+    commands/               # Undo/redo
+  controller/               # MVC controllers
+  core/                     # Serialization, config, SeedManager
+  bridge/                   # Live Bridge API server (TCP, port 9876)
+scripts/                    # CLI experiment automation
+  noise_sweep.py            # Noise probability sweep
+  vqe_benchmark.py          # VQE optimization benchmark
+  qec_threshold.py          # Multi-code QEC threshold analysis
+tests/                      # pytest suite (Phase-1B reproducibility infra)
+  conftest.py               # Shared fixtures (RNGs, circuits, noise models)
+  test_statistics.py        # 29 unit tests for engine.statistics
+  test_attribution_statistics.py  # 13 integration tests for the bootstrap-aware attribution
+PRISM.sh                    # Cross-platform shell launcher
+test_validation.py          # Legacy 33-assertion harness (kept for now; will migrate to tests/)
 ```
 
 ---
 
 ## Validation
 
-The project includes a validation test harness (`test_validation.py`) with 33 assertions covering:
+PRISM ships with two complementary test layers.
+
+### Legacy validation harness
+
+`test_validation.py` (33 assertions) verifies fundamental quantum-mechanical identities that any correct simulator must satisfy:
 
 1. **Bell state correctness** -- amplitudes, mutual information, entanglement entropy
 2. **State normalization** -- norm = 1.0 after gates and noise
@@ -282,12 +299,38 @@ The project includes a validation test harness (`test_validation.py`) with 33 as
 6. **Reference invalidation** -- circuit hash change triggers auto-clear, layer API consistency
 7. **Noise channel CPTP** -- amplitude damping (gamma=0/0.3/1.0 norm preservation, gamma=1 decay to |0>), depolarizing (p=1.0 norm)
 8. **Performance regression** -- 10q depth-20 circuit < 2s, 4q ensemble 50 trials < 5s, ensemble purity < 1.0
-9. **Distribution-transform scaling** -- 16q readout in O(2^n) memory (no 2^n x 2^n matrix), correctness verified against brute-force kron for 2q
+9. **Distribution-transform scaling** -- 16q readout in O(2^n) memory, correctness verified against brute-force kron for 2q
 
 ```bash
 python test_validation.py
 # Results: 33/33 passed, ALL TESTS PASSED
 ```
+
+### Pytest suite (Phase-1B)
+
+The `tests/` directory hosts a pytest suite covering the statistical attribution layer (42 tests). Install dev dependencies and run:
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
+# Results: 42 passed in ~1.3s
+```
+
+Coverage of the bootstrap statistics module is **95%**; the legacy harness is gradually being migrated into this directory.
+
+---
+
+## Roadmap
+
+PRISM is being developed toward an arXiv preprint. The work is organized into three phases:
+
+- **Phase 1 -- Statistical foundation + reproducibility** (in progress)
+  - 1A: Bootstrap CI / p-values / FDR for noise attribution -- **shipped** (`engine/statistics.py`, `compute_noise_attribution_with_statistics()`)
+  - 1B: pytest migration, GitHub Actions CI, headless replay CLI, paper directory
+- **Phase 2 -- Pauli twirling + QEC three-metric agreement analysis**
+- **Phase 3 (optional)** -- Classical shadows / Numba hot-path / Mirror RB (one of)
+
+The North-Star deliverable is a paper that publishes (i) the statistically rigorous per-column noise attribution methodology, (ii) the quantitative effect of Pauli twirling on attribution profiles, and (iii) PRISM itself as an integrated, fully reproducible quantum-circuit research workbench.
 
 ---
 

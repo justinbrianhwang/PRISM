@@ -29,12 +29,12 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import QPointF, QRectF, Qt
 
-from quantum_sim.engine.circuit import GateInstance
-from quantum_sim.engine.gates import GateDefinition, GateType
-from quantum_sim.engine.gate_registry import GateRegistry
+from PRISM.engine.circuit import GateInstance
+from PRISM.engine.gates import GateDefinition, GateType
+from PRISM.engine.gate_registry import GateRegistry
 
 if TYPE_CHECKING:
-    from quantum_sim.gui.circuit_editor.scene import CircuitScene
+    from PRISM.gui.circuit_editor.scene import CircuitScene
 
 # ---------------------------------------------------------------------------
 # Layout constants

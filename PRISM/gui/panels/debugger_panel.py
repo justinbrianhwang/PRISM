@@ -22,9 +22,9 @@ from PyQt6.QtGui import QColor, QFont
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from quantum_sim.engine.state_vector import StateVector
-from quantum_sim.engine.circuit import QuantumCircuit
-from quantum_sim.engine.debugger import (
+from PRISM.engine.state_vector import StateVector
+from PRISM.engine.circuit import QuantumCircuit
+from PRISM.engine.debugger import (
     CircuitDebugger, DebugSnapshot, NoiseImpactResult, NoiseAttribution,
 )
 

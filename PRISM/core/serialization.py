@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from quantum_sim.engine.circuit import QuantumCircuit
+from PRISM.engine.circuit import QuantumCircuit
 
 
 class CircuitSerializer:

@@ -16,7 +16,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import numpy as np
 
-from quantum_sim.engine.qec import (
+from PRISM.engine.qec import (
     QECSimulator, BitFlipCode, PhaseFlipCode, SteaneCode,
 )
 

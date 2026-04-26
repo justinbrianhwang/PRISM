@@ -1,1 +1,1 @@
-"""Quantum Circuit Simulator - Python GUI based quantum computer simulation."""
+"""PRISM - Python GUI based quantum computer simulation."""

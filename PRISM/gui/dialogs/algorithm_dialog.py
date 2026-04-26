@@ -10,7 +10,7 @@ from PyQt6.QtWidgets import (
     QGroupBox, QStackedWidget, QTextEdit,
 )
 
-from quantum_sim.engine.algorithms import AlgorithmTemplate
+from PRISM.engine.algorithms import AlgorithmTemplate
 
 
 class AlgorithmDialog(QDialog):

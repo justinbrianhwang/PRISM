@@ -12,14 +12,14 @@ from PyQt6.QtWidgets import (
 from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
-from quantum_sim.engine.state_vector import StateVector
-from quantum_sim.engine.circuit import QuantumCircuit
-from quantum_sim.engine.simulator import Simulator
-from quantum_sim.engine.noise import (
+from PRISM.engine.state_vector import StateVector
+from PRISM.engine.circuit import QuantumCircuit
+from PRISM.engine.simulator import Simulator
+from PRISM.engine.noise import (
     NoiseModel, BitFlipNoise, PhaseFlipNoise,
     DepolarizingNoise, AmplitudeDampingNoise,
 )
-from quantum_sim.engine.analysis import StateAnalysis
+from PRISM.engine.analysis import StateAnalysis
 
 
 _NOISE_TYPES = {

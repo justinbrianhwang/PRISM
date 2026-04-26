@@ -21,8 +21,8 @@ from PyQt6.QtWidgets import (
     QScrollArea,
 )
 
-from quantum_sim.engine.state_vector import StateVector
-from quantum_sim.engine.analysis import StateAnalysis
+from PRISM.engine.state_vector import StateVector
+from PRISM.engine.analysis import StateAnalysis
 
 
 # ---------------------------------------------------------------------------

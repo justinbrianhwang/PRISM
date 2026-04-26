@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
     QStyle,
 )
 
-from quantum_sim.engine.state_vector import StateVector
+from PRISM.engine.state_vector import StateVector
 
 
 class ProbabilityBarDelegate(QStyledItemDelegate):

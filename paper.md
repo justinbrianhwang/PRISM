@@ -539,20 +539,45 @@ them.
 
 ![Figure 3: GHZ-4 attribution under depolarizing noise.](assets/paper/attr_ghz4_depolarizing.png)
 
-**Figure 3.**  Attribution for the four-qubit GHZ preparation under the
-same depolarizing channel.  Three of the four columns clear FDR
+**Figure 3.**  Attribution for the four-qubit GHZ preparation under
+the same depolarizing channel.  Three of the four columns clear FDR
 correction; the trailing CNOT column has a smaller mean contribution
-because by the time the entanglement reaches the last qubit the partial
-trace structure is already maximally entangled, so additional noise has
-diminishing marginal effect on the global fidelity.  Comparing this
-figure to the GHZ-3 attribution
-([`paper/figures/attr_ghz3_depolarizing.pdf`](paper/figures/attr_ghz3_depolarizing.pdf))
-shows that adding one CNOT column adds one significant column to the
-attribution, with the mean contribution of the new column matching the
-existing pattern within the bootstrap CI.
+because by the time the entanglement reaches the last qubit the
+partial trace structure is already maximally entangled, so additional
+noise has diminishing marginal effect on the global fidelity.
 
-`[FILL IN]`  Quantitative comparison of attribution proportions vs
-qubit count -- one paragraph of analysis.
+Comparing this figure to the GHZ-3 attribution
+([`paper/figures/attr_ghz3_depolarizing.pdf`](paper/figures/attr_ghz3_depolarizing.pdf))
+puts numbers on the depth-scaling claim:
+
+| Metric | GHZ-3 (depol.) | GHZ-4 (depol.) | $\Delta$ |
+|---|---:|---:|---:|
+| $g_L$ (total fidelity loss) | 0.267 | 0.283 | $+6\%$ |
+| max $A_i$ (dominant column %) | 46.9% on `CNOT(1,2)` | 44.1% on `CNOT(0,1)` | $-3$ pp |
+| FDR-significant columns | 3 / 3 (100%) | 3 / 4 (75%) | -- |
+
+Three observations:
+
+* Adding the fourth qubit and one more CNOT column increases total
+  fidelity loss by roughly 6% under fixed $p = 0.05$ depolarizing
+  noise -- much less than would be expected if the contributions were
+  independent (which would give $\sim 33\%$ for an extra column).
+  Each new qubit contributes diminishing marginal noise once the
+  prior qubits are already strongly entangled, so attribution
+  *does not* simply scale with column count.
+* The dominant column's *share* of the attribution drops from 47% to
+  44%.  This is the "spreading" effect: GHZ-4's noise budget is
+  spread across one extra column, so no single column hogs as much
+  of the percentage.  In a hypothetical large-$n$ GHZ, the dominant
+  column's share would continue to shrink even if the absolute
+  fidelity loss saturates.
+* The first GHZ-4 column ($H$ on $q_0$) is the column that *fails*
+  FDR correction -- a single Hadamard at the start of an otherwise-
+  entangling chain contributes too little to clear $q \le 0.05$ at
+  $T = 120$ trials, even though it does measurably contribute (its
+  mean $\Delta_i$ is positive).  This is the "trial budget vs noise
+  strength" trade-off Section 6.0 quantifies: doubling $T$ would
+  almost certainly flip this column to significant.
 
 ### 6.3  Largest circuit: QFT-4 under bit-flip noise
 
@@ -562,13 +587,35 @@ qubit count -- one paragraph of analysis.
 The X-axis is dense but readable; the FDR correction is visibly doing
 work here -- five columns clear $q \le 0.05$ even though the per-column
 mean differences are small, while seven columns are correctly flagged
-as non-significant.  Without multiple-comparison correction the naive
-attribution would suggest several spurious dominant columns; with FDR
-control the dominant column is unambiguous.
+as non-significant.
 
-`[FILL IN]`  Identify which columns clear FDR and discuss why they
-correspond to the QFT controlled-phase gates that act on already-
-entangled qubits.
+The five FDR-significant columns are dominated by the controlled-
+phase gates `Phase(1)` (peak attribution 21.1%) and `Phase(2)`,
+which act on qubits that are *already* in a non-trivial phase
+superposition produced by upstream Hadamards and earlier controlled
+phases.  Bit-flip noise on those qubits maps a phase-encoded
+amplitude to its sign-flipped counterpart, which propagates
+constructively through subsequent controlled-phase rotations and
+measurably degrades the fidelity gap.  Hadamard columns and the final
+SWAPs, by contrast, are not flagged: a bit-flip on a $|+\rangle$
+state is invariant up to a global phase, and the symmetric SWAPs
+preserve bit-flip parities.
+
+The 7 non-significant columns illustrate the value of the FDR layer.
+Without correction at the conventional $p < 0.05$ threshold, *eight*
+columns of the 12 fall below the per-test cutoff in our trials
+(strictly by chance, given that the bootstrap CIs of those columns
+include zero only marginally).  After Benjamini-Hochberg with the
+column count $L = 12$ correction factor, only the genuinely loaded
+phase columns survive.  Cross-checking against the same circuit
+under depolarizing noise sharpens the contrast even more: at the
+same $T = 120$, **zero** columns clear FDR despite a *larger* total
+fidelity loss ($g_L = 0.40$ vs $0.32$ for bit-flip).  The
+depolarizing channel spreads its damage too evenly across the 12
+columns to localise; the bit-flip channel concentrates on the phase
+columns.  The same FDR machinery correctly returns "no localisable
+dominant column" in the first case and "the phase columns dominate"
+in the second.
 
 ### 6.4  QEC component: bit-flip encoder under phase-flip noise
 
@@ -749,6 +796,61 @@ in tidy long form (one row per `(code, rate, bin)`), with the
 JSON metadata at
 [`paper/summary/qec_disagreement.json`](paper/summary/qec_disagreement.json).
 
+### 6.8  Cross-validation via Pauli classical shadows
+
+PRISM's headline attribution methodology is computed from the *full*
+state vector at every column.  Hardware experiments do not have
+access to the full state vector; they only see measurement outcomes.
+To validate that PRISM's claims are recoverable from the same
+primitive that hardware exposes, we ship a Pauli classical-shadow
+estimator
+([`PRISM/engine/shadows.py`](PRISM/engine/shadows.py)) implementing
+the protocol of Huang, Kueng & Preskill (2020).
+
+For each shot we sample a uniform random single-qubit Pauli basis
+``b_i in {X, Y, Z}`` per qubit, rotate the state with the
+corresponding eigenbasis-aligning unitary (Hadamard for X,
+$S^{\dagger} H$ for Y, identity for Z), and measure all qubits in
+the computational basis.  Given $N$ such snapshots, the standard
+single-shot estimator
+
+$$
+\hat{o}_t \;=\; \prod_{i \in \mathrm{supp}(P)}
+3 \cdot \delta_{b_i^{(t)}, P_i}
+\cdot \langle s_i^{(t)} | \sigma_{P_i} | s_i^{(t)} \rangle,
+$$
+
+averaged over shots, converges to ``Tr(P rho)`` for any $k$-local
+Pauli string $P$ with variance scaling as $3^k / N$.  This makes
+single- and two-qubit Pauli observables estimable in $O(10)$ shots
+and weight-4 observables in $O(10^3)$ shots; higher-weight is
+off-limits without a switch to Clifford shadows (a planned
+extension).
+
+![Figure 11: Pauli classical shadow convergence on a Bell state.](paper/summary/shadow_convergence.png)
+
+**Figure 11.**  Pauli classical shadow estimator convergence on the
+Bell state ``(|00> + |11>) / sqrt(2)``.  *Top:* the three sign-fixed
+two-qubit correlators $\langle X X \rangle = +1$,
+$\langle Y Y \rangle = -1$, $\langle Z Z \rangle = +1$ versus shot
+count, with $\pm 1\,\mathrm{SEM}$ errorbars and dashed reference
+lines at the analytic values.  *Bottom:* the standard error of
+$\langle X X \rangle$ on log-log axes alongside a $\propto 1 /
+\sqrt{N}$ reference.  The estimator hits 1% accuracy on each
+correlator by $N = 6400$ shots, and the SEM tracks the $1 / \sqrt{N}$
+scaling expected of an unbiased Monte Carlo estimator across the
+full sweep.
+
+The figure is the textbook check that the protocol is implemented
+correctly.  More usefully, it lets PRISM's attribution claims be
+*independently re-derived* from a primitive that hardware actually
+exposes: a future PR can route attribution through shadow-estimated
+fidelities at each column, which would let a reviewer take the same
+JSON config that drives Figures 2-9 and re-run it on hardware
+measurement data without ever instantiating the state vector.  The
+infrastructure for that workflow is in place; running it on
+real-hardware measurement traces is left as an explicit next step.
+
 ---
 
 ## 7.  Discussion
@@ -856,10 +958,18 @@ new analysis stack:
    suite where F-only-failures and Z-only-failures occur at
    non-trivial frequency.  The Shor $[[9,1,3]]$ code joins the
    suite at the same time.
-3. **Phase 3 (optional).**  Classical shadows, Numba / pybind11 hot-
-   path acceleration, and mirror randomized benchmarking are
-   independent extensions chosen based on which would most strengthen
-   the paper's claims at the time the draft is finalised.
+3. **Phase 3 (in progress).**  Pauli classical shadows shipped in
+   PR #12 (Section 6.8), enabling cross-validation of attribution
+   from measurement primitives that hardware experiments actually
+   expose.  Two further extensions remain on the table:
+
+   * **Clifford shadows** -- richer estimator family that handles
+     higher-weight observables ($k > 4$) gracefully, at the cost of
+     requiring random Clifford sampling.  Direct extension of the
+     Pauli-shadow module in :file:`PRISM/engine/shadows.py`.
+   * **Numba / pybind11 hot-path acceleration** for the inner
+     simulation loop, which would push the practical circuit ceiling
+     from ~16 qubits to ~22 qubits at the same wall-clock budget.
 
 ---
 

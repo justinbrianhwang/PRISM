@@ -1,0 +1,235 @@
+{
+  "meta": {
+    "kind": "shadow_convergence",
+    "state": "bell",
+    "shot_grid": [
+      50,
+      100,
+      200,
+      400,
+      800,
+      1600,
+      3200,
+      6400
+    ],
+    "seed": 20260501
+  },
+  "rows": [
+    {
+      "observable": "XX",
+      "n_shots": 50,
+      "mean_estimate": 0.9,
+      "sem": 0.38571428571428573,
+      "true_value": 1.0,
+      "abs_error": 0.09999999999999998,
+      "elapsed_s": 0.0024907999904826283
+    },
+    {
+      "observable": "YY",
+      "n_shots": 50,
+      "mean_estimate": -1.26,
+      "sem": 0.4461261833030778,
+      "true_value": -1.0,
+      "abs_error": 0.26,
+      "elapsed_s": 0.0024907999904826283
+    },
+    {
+      "observable": "ZZ",
+      "n_shots": 50,
+      "mean_estimate": 1.08,
+      "sem": 0.417807689381278,
+      "true_value": 1.0,
+      "abs_error": 0.08000000000000007,
+      "elapsed_s": 0.0024907999904826283
+    },
+    {
+      "observable": "XX",
+      "n_shots": 100,
+      "mean_estimate": 0.9,
+      "sem": 0.27136021011998723,
+      "true_value": 1.0,
+      "abs_error": 0.09999999999999998,
+      "elapsed_s": 0.0067878999980166554
+    },
+    {
+      "observable": "YY",
+      "n_shots": 100,
+      "mean_estimate": -0.9,
+      "sem": 0.27136021011998723,
+      "true_value": -1.0,
+      "abs_error": 0.09999999999999998,
+      "elapsed_s": 0.0067878999980166554
+    },
+    {
+      "observable": "ZZ",
+      "n_shots": 100,
+      "mean_estimate": 0.72,
+      "sem": 0.24539393190986164,
+      "true_value": 1.0,
+      "abs_error": 0.28,
+      "elapsed_s": 0.0067878999980166554
+    },
+    {
+      "observable": "XX",
+      "n_shots": 200,
+      "mean_estimate": 0.99,
+      "sem": 0.19962150114302055,
+      "true_value": 1.0,
+      "abs_error": 0.010000000000000009,
+      "elapsed_s": 0.00752729999658186
+    },
+    {
+      "observable": "YY",
+      "n_shots": 200,
+      "mean_estimate": -0.9,
+      "sem": 0.1913979253522507,
+      "true_value": -1.0,
+      "abs_error": 0.09999999999999998,
+      "elapsed_s": 0.00752729999658186
+    },
+    {
+      "observable": "ZZ",
+      "n_shots": 200,
+      "mean_estimate": 1.17,
+      "sem": 0.21455926545353335,
+      "true_value": 1.0,
+      "abs_error": 0.16999999999999993,
+      "elapsed_s": 0.00752729999658186
+    },
+    {
+      "observable": "XX",
+      "n_shots": 400,
+      "mean_estimate": 0.72,
+      "sem": 0.12223482884783146,
+      "true_value": 1.0,
+      "abs_error": 0.28,
+      "elapsed_s": 0.01267510000616312
+    },
+    {
+      "observable": "YY",
+      "n_shots": 400,
+      "mean_estimate": -1.1025,
+      "sem": 0.14772284682365222,
+      "true_value": -1.0,
+      "abs_error": 0.10250000000000004,
+      "elapsed_s": 0.01267510000616312
+    },
+    {
+      "observable": "ZZ",
+      "n_shots": 400,
+      "mean_estimate": 1.0575,
+      "sem": 0.145088286578399,
+      "true_value": 1.0,
+      "abs_error": 0.05750000000000011,
+      "elapsed_s": 0.01267510000616312
+    },
+    {
+      "observable": "XX",
+      "n_shots": 800,
+      "mean_estimate": 0.855,
+      "sem": 0.0933587895137589,
+      "true_value": 1.0,
+      "abs_error": 0.14500000000000002,
+      "elapsed_s": 0.026190900010988116
+    },
+    {
+      "observable": "YY",
+      "n_shots": 800,
+      "mean_estimate": -1.00125,
+      "sem": 0.10011725564543039,
+      "true_value": -1.0,
+      "abs_error": 0.0012499999999999734,
+      "elapsed_s": 0.026190900010988116
+    },
+    {
+      "observable": "ZZ",
+      "n_shots": 800,
+      "mean_estimate": 1.08,
+      "sem": 0.10346681461782299,
+      "true_value": 1.0,
+      "abs_error": 0.08000000000000007,
+      "elapsed_s": 0.026190900010988116
+    },
+    {
+      "observable": "XX",
+      "n_shots": 1600,
+      "mean_estimate": 1.00125,
+      "sem": 0.07077145008603081,
+      "true_value": 1.0,
+      "abs_error": 0.0012499999999999734,
+      "elapsed_s": 0.05112970000482164
+    },
+    {
+      "observable": "YY",
+      "n_shots": 1600,
+      "mean_estimate": -1.085625,
+      "sem": 0.07330337963235616,
+      "true_value": -1.0,
+      "abs_error": 0.08562500000000006,
+      "elapsed_s": 0.05112970000482164
+    },
+    {
+      "observable": "ZZ",
+      "n_shots": 1600,
+      "mean_estimate": 1.006875,
+      "sem": 0.07094500920037222,
+      "true_value": 1.0,
+      "abs_error": 0.0068749999999999645,
+      "elapsed_s": 0.05112970000482164
+    },
+    {
+      "observable": "XX",
+      "n_shots": 3200,
+      "mean_estimate": 1.04625,
+      "sem": 0.0510031011735724,
+      "true_value": 1.0,
+      "abs_error": 0.0462499999999999,
+      "elapsed_s": 0.10280179999244865
+    },
+    {
+      "observable": "YY",
+      "n_shots": 3200,
+      "mean_estimate": -0.9703125,
+      "sem": 0.04935123382647066,
+      "true_value": -1.0,
+      "abs_error": 0.029687499999999978,
+      "elapsed_s": 0.10280179999244865
+    },
+    {
+      "observable": "ZZ",
+      "n_shots": 3200,
+      "mean_estimate": 1.018125,
+      "sem": 0.05040178203697111,
+      "true_value": 1.0,
+      "abs_error": 0.018124999999999947,
+      "elapsed_s": 0.10280179999244865
+    },
+    {
+      "observable": "XX",
+      "n_shots": 6400,
+      "mean_estimate": 0.99703125,
+      "sem": 0.035312128057579675,
+      "true_value": 1.0,
+      "abs_error": 0.0029687499999999645,
+      "elapsed_s": 0.21309689999907278
+    },
+    {
+      "observable": "YY",
+      "n_shots": 6400,
+      "mean_estimate": -1.03640625,
+      "sem": 0.035913977407685094,
+      "true_value": -1.0,
+      "abs_error": 0.03640624999999997,
+      "elapsed_s": 0.21309689999907278
+    },
+    {
+      "observable": "ZZ",
+      "n_shots": 6400,
+      "mean_estimate": 0.94078125,
+      "sem": 0.034421892462158786,
+      "true_value": 1.0,
+      "abs_error": 0.05921874999999999,
+      "elapsed_s": 0.21309689999907278
+    }
+  ]
+}

@@ -451,14 +451,23 @@ class CircuitDebugger:
         noise_model,
         n_trials: int,
         seed: int | None,
+        twirl: bool = False,
     ) -> tuple[np.ndarray, np.ndarray, list[list[str]]]:
         """Run ``n_trials`` stochastic simulations and return raw per-column data.
 
-        This is the shared kernel behind both
-        :meth:`compute_noise_attribution` and
-        :meth:`compute_noise_attribution_with_statistics`.  It performs
-        the expensive part of attribution -- running the circuit
-        ``n_trials`` times -- exactly once.
+        This is the shared kernel behind
+        :meth:`compute_noise_attribution`,
+        :meth:`compute_noise_attribution_with_statistics`, and the
+        Pauli-twirled variants.  It performs the expensive part of
+        attribution -- running the circuit ``n_trials`` times -- exactly
+        once.
+
+        When ``twirl`` is ``True`` each gate's noise application is
+        Pauli-twirled per shot (see :class:`PRISM.engine.twirling.PauliTwirler`).
+        Twirling is a no-op for Pauli channels and converts coherent
+        noise into a stochastic Pauli channel, so attribution figures
+        rendered with and without twirling diverge precisely where the
+        underlying noise is non-Pauli.
 
         Returns
         -------
@@ -490,9 +499,18 @@ class CircuitDebugger:
                     labels.append(f"{g.gate_name}({qstr})")
             all_labels.append(labels)
 
+        # Lazy import: twirling is only needed when the caller asks for it.
+        if twirl:
+            from .twirling import PauliTwirler  # noqa: WPS433
+
         for trial in range(n_trials):
             trial_seed = int(base_rng.integers(0, 2**63))
-            noise_model.set_seed(trial_seed)
+            if noise_model is not None:
+                noise_model.set_seed(trial_seed)
+            twirl_rng = (
+                np.random.default_rng(int(base_rng.integers(0, 2**63)))
+                if twirl else None
+            )
 
             ideal = StateVector.from_initial_states(circuit.initial_states)
             noisy = StateVector.from_initial_states(circuit.initial_states)
@@ -506,7 +524,12 @@ class CircuitDebugger:
                     matrix = gate_def.matrix_func(*gate_inst.params)
                     ideal.apply_gate(matrix, gate_inst.target_qubits)
                     noisy.apply_gate(matrix, gate_inst.target_qubits)
-                    noise_model.apply(noisy, gate_inst)
+                    if twirl:
+                        PauliTwirler.apply_twirled_noise(
+                            noisy, noise_model, gate_inst, twirl_rng,
+                        )
+                    elif noise_model is not None:
+                        noise_model.apply(noisy, gate_inst)
 
                 fid = StateAnalysis.state_fidelity(ideal.data, noisy.data)
                 gap = 1.0 - fid
@@ -575,6 +598,7 @@ class CircuitDebugger:
         reference_state: StateVector | None = None,
         n_trials: int = 50,
         seed: int | None = None,
+        twirl: bool = False,
     ) -> NoiseAttribution:
         """Compute per-gate noise attribution by tracking the fidelity gap
         between ideal and noisy trajectories at each column.
@@ -590,6 +614,12 @@ class CircuitDebugger:
                 Currently the ideal trajectory is always used.
             n_trials: Number of stochastic trials to average.
             seed: Base seed for reproducibility.
+            twirl: When ``True`` each gate's noise application is Pauli-
+                twirled per shot via
+                :class:`PRISM.engine.twirling.PauliTwirler`.  Twirling is
+                a no-op for Pauli channels (BitFlip / PhaseFlip /
+                Depolarizing) and converts coherent / non-Pauli noise
+                into a stochastic Pauli channel.  Defaults to ``False``.
 
         Returns:
             NoiseAttribution with per-column fidelity attribution and no
@@ -597,7 +627,7 @@ class CircuitDebugger:
             :meth:`compute_noise_attribution_with_statistics` for that).
         """
         trials, pq_acc, labels = self._collect_attribution_trials(
-            circuit, noise_model, n_trials, seed
+            circuit, noise_model, n_trials, seed, twirl=twirl,
         )
         return self._aggregate_attribution(trials, pq_acc, labels, statistics=None)
 
@@ -611,6 +641,7 @@ class CircuitDebugger:
         confidence: float = 0.95,
         fdr_level: float = 0.05,
         seed: int | None = None,
+        twirl: bool = False,
     ) -> NoiseAttribution:
         """Per-gate attribution with bootstrap CIs and FDR-corrected p-values.
 
@@ -641,6 +672,10 @@ class CircuitDebugger:
             fdr_level: Target false discovery rate for column significance.
             seed: Base seed for reproducibility.  Both the simulation
                 trials and the bootstrap use children of this seed.
+            twirl: When ``True`` each gate's noise application is Pauli-
+                twirled per shot via
+                :class:`PRISM.engine.twirling.PauliTwirler`.  Defaults
+                to ``False``.
 
         Returns:
             :class:`NoiseAttribution` with :attr:`AttributionStatistics`
@@ -651,7 +686,7 @@ class CircuitDebugger:
         boot_seed = int(master_rng.integers(0, 2**63))
 
         trials, pq_acc, labels = self._collect_attribution_trials(
-            circuit, noise_model, n_trials, sim_seed
+            circuit, noise_model, n_trials, sim_seed, twirl=twirl,
         )
 
         boot_rng = np.random.default_rng(boot_seed)

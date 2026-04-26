@@ -8,7 +8,15 @@ import numpy as np
 
 from .state_vector import StateVector
 from .circuit import GateInstance
-from .gates import X_MATRIX, Y_MATRIX, Z_MATRIX, I_MATRIX
+from .gates import (
+    I_MATRIX,
+    X_MATRIX,
+    Y_MATRIX,
+    Z_MATRIX,
+    rx_matrix,
+    ry_matrix,
+    rz_matrix,
+)
 
 
 class NoiseChannel(ABC):
@@ -101,6 +109,60 @@ class AmplitudeDampingNoise(NoiseChannel):
         K1 = np.array([[0, np.sqrt(self._gamma)],
                         [0, 0]], dtype=np.complex128)
         return [K0, K1]
+
+
+class CoherentOverRotationNoise(NoiseChannel):
+    """Deterministic over-rotation around a chosen axis after each gate.
+
+    Unlike the stochastic Pauli channels above, this is a *coherent*
+    error: every shot accumulates exactly the same unitary rotation,
+    so the noise does not average out across trials.  The error is
+    represented as a single unitary Kraus operator, so the existing
+    stochastic-Kraus-selection machinery in :class:`NoiseModel` always
+    selects this Kraus and applies it deterministically.
+
+    Coherent noise is the canonical demonstration target for Pauli
+    twirling: twirling converts the deterministic over-rotation into a
+    stochastic Pauli channel of the same strength, so attribution
+    figures rendered with and without twirling differ visibly even for
+    Pauli-equivalent strengths.
+
+    Parameters
+    ----------
+    angle : float
+        Over-rotation angle in radians.  Realistic single-gate values
+        are 0.05 - 0.20 rad (~3-11 deg).
+    axis : {'X', 'Y', 'Z'}
+        Rotation axis.  Default ``'Z'``.
+    """
+
+    def __init__(self, angle: float, axis: str = "Z"):
+        if axis not in ("X", "Y", "Z"):
+            raise ValueError(f"axis must be 'X', 'Y', or 'Z', got {axis!r}")
+        self._angle = float(angle)
+        self._axis = axis
+
+    @property
+    def angle(self) -> float:
+        return self._angle
+
+    @property
+    def axis(self) -> str:
+        return self._axis
+
+    @property
+    def probability(self) -> float:
+        # The "intensity" knob -- preserved by serialisation as the
+        # rotation angle.  Reused by ``NoiseModel.to_dict`` /
+        # ``from_dict`` which already expects a ``probability`` field.
+        return self._angle
+
+    def get_kraus_operators(self) -> list[np.ndarray]:
+        if self._axis == "X":
+            return [rx_matrix(self._angle)]
+        if self._axis == "Y":
+            return [ry_matrix(self._angle)]
+        return [rz_matrix(self._angle)]
 
 
 class ReadoutError:
@@ -259,18 +321,25 @@ class NoiseModel:
             if norm > 1e-15:
                 state._data /= norm
 
+    @staticmethod
+    def _channel_to_dict(ch: "NoiseChannel") -> dict:
+        """Serialise a single noise channel.  Pauli channels carry a
+        single ``probability`` field; coherent noise carries an
+        additional ``axis`` to disambiguate the rotation plane.
+        """
+        d = {"type": type(ch).__name__, "probability": ch.probability}
+        if isinstance(ch, CoherentOverRotationNoise):
+            d["axis"] = ch.axis
+        return d
+
     def to_dict(self) -> dict:
         """Serialize noise model configuration."""
         result = {"global": [], "gate_specific": {}}
         for ch in self._global_noise:
-            result["global"].append({
-                "type": type(ch).__name__,
-                "probability": ch.probability,
-            })
+            result["global"].append(self._channel_to_dict(ch))
         for gate_name, channels in self._gate_noise.items():
             result["gate_specific"][gate_name] = [
-                {"type": type(ch).__name__, "probability": ch.probability}
-                for ch in channels
+                self._channel_to_dict(ch) for ch in channels
             ]
         if self._readout_error is not None:
             result["readout_error"] = self._readout_error.to_dict()
@@ -284,15 +353,24 @@ class NoiseModel:
             "PhaseFlipNoise": PhaseFlipNoise,
             "DepolarizingNoise": DepolarizingNoise,
             "AmplitudeDampingNoise": AmplitudeDampingNoise,
+            "CoherentOverRotationNoise": CoherentOverRotationNoise,
         }
+
+        def _build(ch_data: dict) -> NoiseChannel:
+            ch_cls = channel_types[ch_data["type"]]
+            if ch_cls is CoherentOverRotationNoise:
+                return ch_cls(
+                    angle=ch_data["probability"],
+                    axis=ch_data.get("axis", "Z"),
+                )
+            return ch_cls(ch_data["probability"])
+
         model = cls()
         for ch_data in data.get("global", []):
-            ch_cls = channel_types[ch_data["type"]]
-            model.add_global_noise(ch_cls(ch_data["probability"]))
+            model.add_global_noise(_build(ch_data))
         for gate_name, channels in data.get("gate_specific", {}).items():
             for ch_data in channels:
-                ch_cls = channel_types[ch_data["type"]]
-                model.add_gate_noise(gate_name, ch_cls(ch_data["probability"]))
+                model.add_gate_noise(gate_name, _build(ch_data))
         if "readout_error" in data:
             model.set_readout_error(ReadoutError.from_dict(data["readout_error"]))
         return model

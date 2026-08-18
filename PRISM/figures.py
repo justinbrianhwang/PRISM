@@ -24,6 +24,8 @@ Conventions
 
 from __future__ import annotations
 
+import os
+
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -441,6 +443,12 @@ def attribution_comparison_figure(
 # ---------------------------------------------------------------------------
 
 
+# Fixed timestamp (2026-01-01T00:00:00Z) stamped into every figure's PDF
+# metadata so replays are byte-identical.  The value is arbitrary but
+# must never change once figures are committed.
+_FIGURE_EPOCH = "1767225600"
+
+
 def save_figure(
     fig: "Figure",
     path: str,
@@ -463,8 +471,25 @@ def save_figure(
       default -- meets typical journal print requirements and is
       visibly sharper than the on-screen 200 DPI default that earlier
       revisions used.
+
+    Determinism
+    -----------
+    Matplotlib stamps a ``/CreationDate`` into PDF output, which would
+    make otherwise-identical replays differ by a few metadata bytes.
+    We pin ``SOURCE_DATE_EPOCH`` (the standard reproducible-builds
+    variable, honoured by matplotlib) to a fixed value for the duration
+    of the save so that every PRISM figure is byte-identical across
+    replays in the same environment.
     """
-    fig.savefig(path, dpi=dpi, bbox_inches="tight", pad_inches=0.05)
+    prev = os.environ.get("SOURCE_DATE_EPOCH")
+    os.environ["SOURCE_DATE_EPOCH"] = _FIGURE_EPOCH
+    try:
+        fig.savefig(path, dpi=dpi, bbox_inches="tight", pad_inches=0.05)
+    finally:
+        if prev is None:
+            os.environ.pop("SOURCE_DATE_EPOCH", None)
+        else:
+            os.environ["SOURCE_DATE_EPOCH"] = prev
 
 
 def use_paper_style() -> None:

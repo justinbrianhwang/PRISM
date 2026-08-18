@@ -1,6 +1,6 @@
 # PRISM
 
-[![tests](https://github.com/justinbrianhwang/PRISM/blob/main/assets/Logo.png)](https://github.com/justinbrianhwang/PRISM/actions/workflows/test.yml)
+[![tests](https://github.com/justinbrianhwang/PRISM/actions/workflows/test.yml/badge.svg)](https://github.com/justinbrianhwang/PRISM/actions/workflows/test.yml)
 
 > **P**er-gate **R**eproducible **I**nference for **S**tochastic **M**echanics
 
@@ -230,7 +230,7 @@ All scripts output JSON and support `--seed` for full reproducibility.
 
 ## Reproducible Figure Replay
 
-Every figure in `paper/figures/` ships with a self-contained JSON config in `paper/experiments/` that fully describes the experiment (serialised circuit, serialised noise model, seed, all bootstrap parameters). The replay CLI reconstructs the experiment from the config alone -- no external lookup tables, no environment dependence -- so that a reviewer with a fresh clone can rebuild any figure bit-exactly:
+Every figure in `paper/figures/` ships with a self-contained JSON config in `paper/experiments/` that fully describes the experiment (serialised circuit, serialised noise model, seed, all bootstrap parameters). The replay CLI reconstructs the experiment from the config alone -- no external lookup tables, no hidden state -- so that a reviewer with a fresh clone can rebuild any figure bit-exactly in the pinned reference environment (`pip install -r requirements-paper.txt`; PDF metadata timestamps are pinned via `SOURCE_DATE_EPOCH` so the byte-for-byte guarantee covers the figure files themselves):
 
 ```bash
 # Rebuild one figure from its config (PDF + CSV)

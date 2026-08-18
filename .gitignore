@@ -37,7 +37,7 @@ Thumbs.db
 # User-local paper drafts (do not commit while iterating)
 Arxiv/
 arxiv/
-QST/
+/tex/
 paper.md
 
 # LaTeX build artefacts

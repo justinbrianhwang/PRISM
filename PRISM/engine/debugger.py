@@ -642,6 +642,7 @@ class CircuitDebugger:
         fdr_level: float = 0.05,
         seed: int | None = None,
         twirl: bool = False,
+        signal_floor: float = 1e-12,
     ) -> NoiseAttribution:
         """Per-gate attribution with bootstrap CIs and FDR-corrected p-values.
 
@@ -676,6 +677,18 @@ class CircuitDebugger:
                 twirled per shot via
                 :class:`PRISM.engine.twirling.PauliTwirler`.  Defaults
                 to ``False``.
+            signal_floor: Columns whose ``|mean(delta_F)|`` falls below
+                this floor are treated as physically inactive: their
+                p-value is forced to ``1.0`` before FDR correction.
+                Machine-epsilon offsets (~1e-16) on inactive columns are
+                artefacts of floating-point reduction order -- their sign
+                and magnitude are not stable across NumPy/BLAS versions,
+                and a bootstrap over an (almost) constant sample would
+                otherwise flag them as spuriously significant.  The
+                default (``1e-12``) matches the epsilon used by
+                :func:`PRISM.engine.statistics.attribution_percentage`
+                and sits several orders of magnitude below any physical
+                contribution at realistic trial budgets.
 
         Returns:
             :class:`NoiseAttribution` with :attr:`AttributionStatistics`
@@ -717,6 +730,17 @@ class CircuitDebugger:
         p_values = column_pvalues_from_bootstrap(
             mean_boot_dist, mean_estimates, null_value=0.0
         )
+
+        # Noise-floor guard: a column whose mean contribution is at the
+        # floating-point noise floor carries no physical signal.  Its
+        # bootstrap p-value reflects a deterministic machine-epsilon
+        # offset whose sign flips with the reduction order of the
+        # underlying BLAS, so testing it would produce environment-
+        # dependent "discoveries".  Force p = 1 so the FDR family only
+        # contains physically meaningful hypotheses.
+        inactive = np.abs(mean_estimates) < signal_floor
+        p_values[inactive] = 1.0
+
         q_values, significant = benjamini_hochberg(p_values, fdr=fdr_level)
 
         # Recovery rate with bootstrap CI.

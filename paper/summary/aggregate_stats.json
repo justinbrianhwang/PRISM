@@ -1,19 +1,19 @@
 {
   "n_pairs": 32,
   "n_columns_total": 172,
-  "n_significant_total": 86,
+  "n_significant_total": 67,
   "n_recovery_total": 0,
-  "fraction_columns_significant": 0.5,
+  "fraction_columns_significant": 0.38953488372093026,
   "pauli_subset": {
     "n_pairs": 24,
     "n_columns": 129,
-    "n_significant": 67,
-    "fraction_significant": 0.5193798449612403
+    "n_significant": 51,
+    "fraction_significant": 0.3953488372093023
   },
   "nonpauli_subset": {
     "n_pairs": 8,
     "n_columns": 43,
-    "n_significant": 19,
-    "fraction_significant": 0.4418604651162791
+    "n_significant": 16,
+    "fraction_significant": 0.37209302325581395
   }
 }

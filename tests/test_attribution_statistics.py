@@ -358,3 +358,50 @@ class TestPointEstimateConsistency:
         # And the cheap method run on the *master* seed will not match
         # exactly (different sim seed), but should be close in scale.
         assert len(a_cheap.delta_fidelity) == len(a_stat.delta_fidelity)
+
+
+class TestSignalFloorGuard:
+    """Columns at the floating-point noise floor must never be flagged.
+
+    An H gate followed by bit-flip noise leaves |+> invariant, so the
+    column's mean delta_F sits at machine epsilon (~1e-16).  Its exact
+    value and sign depend on the NumPy/BLAS reduction order, so without
+    the signal-floor guard the bootstrap would flag a deterministic
+    epsilon offset as a "significant" contribution -- an environment-
+    dependent false discovery.
+    """
+
+    def test_noise_floor_column_not_significant(self):
+        from PRISM.engine.noise import BitFlipNoise
+
+        qc = QuantumCircuit(num_qubits=1)
+        qc.add_gate(GateInstance("H", [0], [], 0))
+        nm = NoiseModel()
+        nm.add_global_noise(BitFlipNoise(0.2))
+
+        debugger = CircuitDebugger()
+        attribution = debugger.compute_noise_attribution_with_statistics(
+            qc, nm, n_trials=40, n_bootstrap=200, seed=123,
+        )
+        stats = attribution.statistics
+        # Bit-flip acts trivially on |+>: the column is physically
+        # inactive, so the guard must force p = 1 and non-significance.
+        assert abs(attribution.delta_fidelity[0]) < 1e-12
+        assert stats.delta_fidelity_p_value[0] == 1.0
+        assert stats.column_significant[0] is False or not stats.column_significant[0]
+
+    def test_active_column_unaffected_by_guard(self):
+        qc = QuantumCircuit(num_qubits=1)
+        qc.add_gate(GateInstance("H", [0], [], 0))
+        nm = NoiseModel()
+        nm.add_global_noise(DepolarizingNoise(0.2))
+
+        debugger = CircuitDebugger()
+        attribution = debugger.compute_noise_attribution_with_statistics(
+            qc, nm, n_trials=60, n_bootstrap=300, seed=123,
+        )
+        stats = attribution.statistics
+        # Depolarizing noise genuinely damages |+>; the column carries
+        # real signal and the guard must leave its p-value alone.
+        assert abs(attribution.delta_fidelity[0]) > 1e-3
+        assert stats.delta_fidelity_p_value[0] < 1.0

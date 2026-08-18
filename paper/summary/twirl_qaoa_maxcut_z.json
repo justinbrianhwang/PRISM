@@ -16,15 +16,15 @@
   "summary": {
     "untwirled": {
       "n_significant": 8,
-      "max_attribution_pct": 21.96324708326222,
-      "max_delta_F_std": 4.163336342344337e-16,
-      "total_fidelity_loss": 0.6322011861692278
+      "max_attribution_pct": 21.96324708326225,
+      "max_delta_F_std": 2.220446049250313e-16,
+      "total_fidelity_loss": 0.632201186169227
     },
     "twirled": {
       "n_significant": 8,
-      "max_attribution_pct": 16.17788405145628,
-      "max_delta_F_std": 0.05562099052119287,
-      "total_fidelity_loss": 0.2552593199709374
+      "max_attribution_pct": 16.177884051456278,
+      "max_delta_F_std": 0.05562099052119286,
+      "total_fidelity_loss": 0.2552593199709375
     }
   }
 }

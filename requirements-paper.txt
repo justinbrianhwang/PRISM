@@ -1,0 +1,16 @@
+# Pinned reference environment for bit-exact replay of the paper figures.
+#
+# The replay pipeline (python -m PRISM.replay) is numerically exact across
+# a wide range of NumPy versions (the CSV tables reproduce byte-identically),
+# but the PDF byte stream depends on the exact Matplotlib version through
+# font subsetting and stream encoding.  The figures committed under
+# paper/figures/ were generated with the versions below on CPython 3.14.4;
+# use this file to reproduce them byte-for-byte:
+#
+#     python -m pip install -r requirements-paper.txt
+#     python -m PRISM.replay --all paper/experiments/ --output paper/figures/
+#
+# The GUI is not required for replay, so PyQt6 is intentionally absent here.
+
+numpy==2.4.6
+matplotlib==3.11.1

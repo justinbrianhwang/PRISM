@@ -22,6 +22,7 @@ from PRISM.engine.statistics import (
     BootstrapResult,
     attribution_percentage,
     benjamini_hochberg,
+    benjamini_yekutieli,
     bootstrap_ci,
     bootstrap_matrix_statistics,
     column_pvalues_from_bootstrap,
@@ -340,3 +341,56 @@ class TestRecoveryRate:
         matrix = np.full((10, 1), -1e-15)
         rate = recovery_rate(matrix, eps=1e-12)
         assert rate[0] == 0.0
+
+
+# ---------------------------------------------------------------------------
+# benjamini_yekutieli
+# ---------------------------------------------------------------------------
+
+
+class TestBenjaminiYekutieli:
+
+    def test_q_values_dominate_bh(self):
+        # BY is uniformly more conservative than BH.
+        rng = np.random.default_rng(7)
+        p = rng.uniform(0.0, 1.0, size=25)
+        q_bh, _ = benjamini_hochberg(p)
+        q_by, _ = benjamini_yekutieli(p)
+        assert (q_by >= q_bh - 1e-15).all()
+
+    def test_harmonic_inflation_exact(self):
+        # Below the 1.0 cap, BY q-values equal BH q-values times the
+        # harmonic number c(n) = sum_{k=1..n} 1/k.
+        p = np.array([0.001, 0.002, 0.003, 0.004])
+        n = p.size
+        harmonic = np.sum(1.0 / np.arange(1, n + 1))
+        q_bh, _ = benjamini_hochberg(p)
+        q_by, _ = benjamini_yekutieli(p)
+        expected = np.minimum(q_bh * harmonic, 1.0)
+        np.testing.assert_allclose(q_by, expected)
+
+    def test_rejections_subset_of_bh(self):
+        rng = np.random.default_rng(11)
+        # Mix of strong effects and nulls.
+        p = np.concatenate([rng.uniform(0.0, 0.005, 5), rng.uniform(0.2, 1.0, 15)])
+        _, rej_bh = benjamini_hochberg(p, fdr=0.05)
+        _, rej_by = benjamini_yekutieli(p, fdr=0.05)
+        assert (rej_by <= rej_bh).all()  # BY never rejects where BH does not
+
+    def test_single_test_matches_bh(self):
+        # With n = 1 the harmonic factor is 1, so BY == BH.
+        p = np.array([0.03])
+        q_bh, rej_bh = benjamini_hochberg(p, fdr=0.05)
+        q_by, rej_by = benjamini_yekutieli(p, fdr=0.05)
+        np.testing.assert_allclose(q_by, q_bh)
+        assert rej_by.tolist() == rej_bh.tolist()
+
+    def test_capped_at_one(self):
+        p = np.array([0.5, 0.9, 0.99])
+        q_by, rej = benjamini_yekutieli(p)
+        assert (q_by <= 1.0).all()
+        assert not rej.any()
+
+    def test_empty_input(self):
+        q, rej = benjamini_yekutieli(np.array([]))
+        assert q.size == 0 and rej.size == 0

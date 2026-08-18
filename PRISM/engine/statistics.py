@@ -19,6 +19,9 @@ Three primitives are exposed:
   whole matrix.
 * :func:`benjamini_hochberg` -- BH FDR correction for a vector of
   raw p-values.
+* :func:`benjamini_yekutieli` -- BY FDR correction, valid under
+  arbitrary dependence between the tests.  Used as a sensitivity
+  check for the BH-based attribution significance flags.
 
 A small ``BootstrapResult`` dataclass bundles the CI + p-value together
 so that downstream code does not need to juggle parallel arrays.
@@ -381,6 +384,50 @@ def benjamini_hochberg(
 
     q_values = np.empty(n, dtype=float)
     q_values[order] = q_sorted
+
+    rejected = q_values <= fdr
+    return q_values, rejected
+
+
+def benjamini_yekutieli(
+    p_values: np.ndarray,
+    fdr: float = 0.05,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Benjamini-Yekutieli FDR correction, valid under arbitrary dependence.
+
+    Identical to the BH step-up procedure except that the adjustment
+    factor ``n / i`` is inflated by the harmonic number
+    ``c(n) = sum_{k=1}^{n} 1/k``, which guarantees FDR control at level
+    ``fdr`` for *any* dependence structure between the tests
+    (Benjamini & Yekutieli 2001).
+
+    Because PRISM's per-column p-values are derived from shared
+    trajectory rows they are mutually dependent; BY is the conservative
+    fallback used to sanity-check the BH-based ``significant`` flags.
+
+    Parameters
+    ----------
+    p_values : np.ndarray
+        1D array of raw p-values in ``[0, 1]``.
+    fdr : float, optional
+        Target false discovery rate (default ``0.05``).
+
+    Returns
+    -------
+    q_values : np.ndarray
+        BY-adjusted p-values (q-values), capped at ``1.0``.  Always
+        greater than or equal to the corresponding BH q-values.
+    rejected : np.ndarray of bool
+        Boolean mask marking columns whose ``q_value <= fdr``.
+    """
+    p = np.asarray(p_values, dtype=float).ravel()
+    n = p.size
+    if n == 0:
+        return np.array([], dtype=float), np.array([], dtype=bool)
+
+    harmonic = float(np.sum(1.0 / np.arange(1, n + 1, dtype=float)))
+    q_bh, _ = benjamini_hochberg(p, fdr=fdr)
+    q_values = np.minimum(q_bh * harmonic, 1.0)
 
     rejected = q_values <= fdr
     return q_values, rejected

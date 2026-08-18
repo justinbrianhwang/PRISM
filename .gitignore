@@ -39,6 +39,7 @@ Arxiv/
 arxiv/
 /tex/
 paper.md
+deep-research-report.md
 
 # LaTeX build artefacts
 *.aux

@@ -85,7 +85,7 @@ def main() -> None:
             )
             stats = attr.statistics
             n_sig = int(sum(stats.column_significant))
-            pcts = np.asarray(attr.attribution_pct)
+            pcts = np.asarray(attr.column_attribution_pct)
             dom = int(pcts.argmax()) if pcts.max() > 0 else -1
             dom_pct = float(pcts.max())
 

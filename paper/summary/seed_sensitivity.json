@@ -1,0 +1,58 @@
+{
+  "n_seeds": 50,
+  "seed_base": 977000,
+  "pairs": {
+    "attr_qaoa_maxcut_depolarizing": {
+      "label": "QAOA($C_4$) + Depol",
+      "n_seeds": 50,
+      "sig_min": 5,
+      "sig_median": 7.0,
+      "sig_max": 8,
+      "suite_seed_sig": 6,
+      "dominant_modal_column": 3,
+      "dominant_modal_fraction": 0.4,
+      "dominant_pct_mean": 21.944666317593214,
+      "dominant_pct_std": 2.6310179248025425,
+      "elapsed_seconds": 79.2
+    },
+    "attr_ghz4_depolarizing": {
+      "label": "GHZ-4 + Depol",
+      "n_seeds": 50,
+      "sig_min": 0,
+      "sig_median": 3.0,
+      "sig_max": 4,
+      "suite_seed_sig": 3,
+      "dominant_modal_column": 1,
+      "dominant_modal_fraction": 0.56,
+      "dominant_pct_mean": 37.96245968892003,
+      "dominant_pct_std": 4.969405681647528,
+      "elapsed_seconds": 40.5
+    },
+    "attr_qft4_bit_flip": {
+      "label": "QFT-4 + BitFlip",
+      "n_seeds": 50,
+      "sig_min": 0,
+      "sig_median": 0.0,
+      "sig_max": 2,
+      "suite_seed_sig": 0,
+      "dominant_modal_column": 1,
+      "dominant_modal_fraction": 0.36,
+      "dominant_pct_mean": 27.503562047806426,
+      "dominant_pct_std": 4.9588128976033365,
+      "elapsed_seconds": 85.3
+    },
+    "attr_bell_amp_damping": {
+      "label": "Bell + AmpDamp",
+      "n_seeds": 50,
+      "sig_min": 0,
+      "sig_median": 1.0,
+      "sig_max": 2,
+      "suite_seed_sig": 2,
+      "dominant_modal_column": 1,
+      "dominant_modal_fraction": 0.98,
+      "dominant_pct_mean": 78.91987798425987,
+      "dominant_pct_std": 10.128561409791276,
+      "elapsed_seconds": 17.3
+    }
+  }
+}

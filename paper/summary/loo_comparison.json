@@ -1,0 +1,23 @@
+{
+  "n_trials": 2000,
+  "seed": 630000,
+  "pairs": {
+    "attr_ghz4_depolarizing": {
+      "label": "GHZ-4 + Depol",
+      "n_columns": 4,
+      "g_full": 0.2875,
+      "pearson_r": 0.7812243104141724,
+      "sum_telescoping": 0.2875,
+      "sum_loo": 0.29249999999999954
+    },
+    "attr_qaoa_maxcut_depolarizing": {
+      "label": "QAOA($C_4$) + Depol",
+      "n_columns": 8,
+      "g_full": 0.6986174330347537,
+      "pearson_r": 0.4385658794594036,
+      "sum_telescoping": 0.6986174330347537,
+      "sum_loo": 0.4230435379011903
+    }
+  },
+  "elapsed_seconds": 136.5
+}

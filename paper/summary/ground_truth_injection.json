@@ -1,0 +1,41 @@
+{
+  "n_seeds": 20,
+  "seed_base": 411000,
+  "n_trials": 120,
+  "n_bootstrap": 1000,
+  "fdr_level": 0.05,
+  "circuit_columns": [
+    "H",
+    "CNOT",
+    "Ry",
+    "CZ",
+    "X"
+  ],
+  "aggregate": {
+    "0.05": {
+      "runs": 100,
+      "hit_rate": 0.46,
+      "top1_rate": 0.99,
+      "exact_rate": 0.46,
+      "false_discovery_rate_per_run": 0.0,
+      "null_column_flag_rate": 0.0
+    },
+    "0.1": {
+      "runs": 100,
+      "hit_rate": 0.89,
+      "top1_rate": 1.0,
+      "exact_rate": 0.89,
+      "false_discovery_rate_per_run": 0.0,
+      "null_column_flag_rate": 0.0
+    },
+    "0.2": {
+      "runs": 100,
+      "hit_rate": 1.0,
+      "top1_rate": 1.0,
+      "exact_rate": 1.0,
+      "false_discovery_rate_per_run": 0.0,
+      "null_column_flag_rate": 0.0
+    }
+  },
+  "elapsed_seconds": 185.3
+}

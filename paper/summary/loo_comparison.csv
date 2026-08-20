@@ -1,0 +1,13 @@
+circuit,column,telescoping_delta,loo_delta
+GHZ-4 + Depol,0,0.041,0.042
+GHZ-4 + Depol,1,0.101,0.0805
+GHZ-4 + Depol,2,0.075,0.088
+GHZ-4 + Depol,3,0.0705,0.082
+QAOA($C_4$) + Depol,0,0.1345,0.044366
+QAOA($C_4$) + Depol,1,0.1045,0.053365
+QAOA($C_4$) + Depol,2,0.045274,0.030508
+QAOA($C_4$) + Depol,3,0.142785,0.070643
+QAOA($C_4$) + Depol,4,0.094685,0.057972
+QAOA($C_4$) + Depol,5,0.044778,0.039413
+QAOA($C_4$) + Depol,6,0.069686,0.057176
+QAOA($C_4$) + Depol,7,0.062407,0.0696

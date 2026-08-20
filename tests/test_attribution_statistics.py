@@ -405,3 +405,50 @@ class TestSignalFloorGuard:
         # real signal and the guard must leave its p-value alone.
         assert abs(attribution.delta_fidelity[0]) > 1e-3
         assert stats.delta_fidelity_p_value[0] < 1.0
+
+
+class TestNoiseColumnMask:
+    """noise_columns restricts noise application to the listed columns."""
+
+    def test_mask_isolates_columns(self):
+        qc = QuantumCircuit(num_qubits=2)
+        qc.add_gate(GateInstance("H", [0], [], 0))
+        qc.add_gate(GateInstance("CNOT", [0, 1], [], 1))
+        nm = NoiseModel()
+        nm.add_global_noise(DepolarizingNoise(0.3))
+
+        debugger = CircuitDebugger()
+        attr = debugger.compute_noise_attribution(
+            qc, nm, n_trials=60, seed=7, noise_columns={0},
+        )
+        # Fidelity is invariant under a joint unitary, so with noise
+        # confined to column 0 the column-1 contribution is exactly 0.
+        assert abs(attr.delta_fidelity[0]) > 1e-3
+        assert abs(attr.delta_fidelity[1]) < 1e-12
+
+    def test_empty_mask_is_noiseless(self):
+        qc = QuantumCircuit(num_qubits=2)
+        qc.add_gate(GateInstance("H", [0], [], 0))
+        qc.add_gate(GateInstance("CNOT", [0, 1], [], 1))
+        nm = NoiseModel()
+        nm.add_global_noise(DepolarizingNoise(0.5))
+
+        debugger = CircuitDebugger()
+        attr = debugger.compute_noise_attribution(
+            qc, nm, n_trials=20, seed=7, noise_columns=set(),
+        )
+        assert all(abs(d) < 1e-12 for d in attr.delta_fidelity)
+
+    def test_default_mask_matches_unmasked(self):
+        qc = QuantumCircuit(num_qubits=2)
+        qc.add_gate(GateInstance("H", [0], [], 0))
+        qc.add_gate(GateInstance("CNOT", [0, 1], [], 1))
+        nm = NoiseModel()
+        nm.add_global_noise(DepolarizingNoise(0.2))
+
+        debugger = CircuitDebugger()
+        a = debugger.compute_noise_attribution(qc, nm, n_trials=40, seed=11)
+        b = debugger.compute_noise_attribution(
+            qc, nm, n_trials=40, seed=11, noise_columns={0, 1},
+        )
+        assert a.delta_fidelity == b.delta_fidelity

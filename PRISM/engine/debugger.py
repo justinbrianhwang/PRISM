@@ -452,6 +452,7 @@ class CircuitDebugger:
         n_trials: int,
         seed: int | None,
         twirl: bool = False,
+        noise_columns: set[int] | None = None,
     ) -> tuple[np.ndarray, np.ndarray, list[list[str]]]:
         """Run ``n_trials`` stochastic simulations and return raw per-column data.
 
@@ -468,6 +469,13 @@ class CircuitDebugger:
         noise into a stochastic Pauli channel, so attribution figures
         rendered with and without twirling diverge precisely where the
         underlying noise is non-Pauli.
+
+        When ``noise_columns`` is given, noise is applied only at the
+        listed column indices; all other columns evolve noiselessly.
+        This enables interventional analyses such as leave-one-out
+        attribution (run with all columns except ``i`` active) and
+        targeted ground-truth injection, without touching the noise
+        model itself.
 
         Returns
         -------
@@ -517,6 +525,9 @@ class CircuitDebugger:
             prev_gap = 0.0
 
             for col_idx, column_gates in enumerate(ordered):
+                column_noisy = (
+                    noise_columns is None or col_idx in noise_columns
+                )
                 for gate_inst in column_gates:
                     gate_def = self._registry.get(gate_inst.gate_name)
                     if gate_def.gate_type in (GateType.MEASUREMENT, GateType.BARRIER):
@@ -524,6 +535,8 @@ class CircuitDebugger:
                     matrix = gate_def.matrix_func(*gate_inst.params)
                     ideal.apply_gate(matrix, gate_inst.target_qubits)
                     noisy.apply_gate(matrix, gate_inst.target_qubits)
+                    if not column_noisy:
+                        continue
                     if twirl:
                         PauliTwirler.apply_twirled_noise(
                             noisy, noise_model, gate_inst, twirl_rng,
@@ -599,6 +612,7 @@ class CircuitDebugger:
         n_trials: int = 50,
         seed: int | None = None,
         twirl: bool = False,
+        noise_columns: set[int] | None = None,
     ) -> NoiseAttribution:
         """Compute per-gate noise attribution by tracking the fidelity gap
         between ideal and noisy trajectories at each column.
@@ -628,6 +642,7 @@ class CircuitDebugger:
         """
         trials, pq_acc, labels = self._collect_attribution_trials(
             circuit, noise_model, n_trials, seed, twirl=twirl,
+            noise_columns=noise_columns,
         )
         return self._aggregate_attribution(trials, pq_acc, labels, statistics=None)
 

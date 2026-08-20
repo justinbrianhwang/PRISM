@@ -34,12 +34,18 @@ coverage.xml
 .DS_Store
 Thumbs.db
 
-# User-local paper drafts (do not commit while iterating)
+# User-local paper drafts and review documents (do not commit while iterating)
 Arxiv/
 arxiv/
 /tex/
 paper.md
 deep-research-report.md
+revision_check.md
+review_*.md
+adversarial_review.md
+
+# Unrelated local files
+qml_survey_overleaf*.pdf
 
 # LaTeX build artefacts
 *.aux

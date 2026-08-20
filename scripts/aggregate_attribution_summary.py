@@ -165,7 +165,7 @@ def _sort_key(row: SummaryRow) -> tuple[int, int]:
 def write_csv(rows: list[SummaryRow], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].as_dict().keys()))
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].as_dict().keys()), lineterminator="\n")
         writer.writeheader()
         for r in rows:
             writer.writerow(r.as_dict())

@@ -15,7 +15,7 @@
       "max_attribution_pct": 18.181818181818922,
       "max_attribution_pct_significant": 0.0,
       "mean_attribution_pct_significant": 0.0,
-      "elapsed_seconds": 0.7442198999997345,
+      "elapsed_seconds": 2.480848600000172,
       "seed": 20260427
     },
     {
@@ -27,7 +27,7 @@
       "max_attribution_pct": 29.204867269604527,
       "max_attribution_pct_significant": 0.0,
       "mean_attribution_pct_significant": 0.0,
-      "elapsed_seconds": 0.7473258000027272,
+      "elapsed_seconds": 1.6837886000002982,
       "seed": 20260527
     },
     {
@@ -39,7 +39,7 @@
       "max_attribution_pct": 24.67134376729651,
       "max_attribution_pct_significant": 24.67134376729651,
       "mean_attribution_pct_significant": 23.543056805757935,
-      "elapsed_seconds": 0.6831405000011728,
+      "elapsed_seconds": 2.6398220999999467,
       "seed": 20260627
     },
     {
@@ -51,7 +51,7 @@
       "max_attribution_pct": 23.33728748139593,
       "max_attribution_pct_significant": 23.33728748139593,
       "mean_attribution_pct_significant": 15.698906841308512,
-      "elapsed_seconds": 0.7139213000009477,
+      "elapsed_seconds": 2.0798933999994915,
       "seed": 20260727
     },
     {
@@ -63,7 +63,7 @@
       "max_attribution_pct": 29.611588867631838,
       "max_attribution_pct_significant": 29.611588867631838,
       "mean_attribution_pct_significant": 18.26870535266426,
-      "elapsed_seconds": 0.6887601999987965,
+      "elapsed_seconds": 2.1904223000001366,
       "seed": 20260827
     },
     {
@@ -75,7 +75,7 @@
       "max_attribution_pct": 44.55396750078504,
       "max_attribution_pct_significant": 44.55396750078504,
       "mean_attribution_pct_significant": 27.045824780343157,
-      "elapsed_seconds": 0.8261820000006992,
+      "elapsed_seconds": 1.82029539999985,
       "seed": 20260927
     },
     {
@@ -87,7 +87,7 @@
       "max_attribution_pct": 48.34145237841662,
       "max_attribution_pct_significant": 48.34145237841662,
       "mean_attribution_pct_significant": 22.85110796534373,
-      "elapsed_seconds": 0.6986627000005683,
+      "elapsed_seconds": 1.8166847000002235,
       "seed": 20261027
     }
   ]

@@ -1,0 +1,14 @@
+# Keep replay outputs and sources byte-stable across platforms.
+# CSV/JSON are replay artefacts whose bytes the paper's bit-exact claim
+# covers: they are written with LF explicitly, so check them out as LF
+# everywhere (no autocrlf smudging).
+*.csv   text eol=lf
+*.json  text eol=lf
+*.md    text eol=lf
+*.py    text eol=lf
+*.yml   text eol=lf
+*.txt   text eol=lf
+*.sh    text eol=lf
+*.pdf   -text
+*.png   binary
+*.qsim  text eol=lf

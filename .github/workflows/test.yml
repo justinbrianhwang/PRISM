@@ -83,3 +83,41 @@ jobs:
           files: ./coverage.xml
           flags: pytest
           fail_ci_if_error: false
+
+  # The paper's reproducibility claim: in the pinned reference
+  # environment (Windows + CPython 3.14 + requirements-paper.txt),
+  # replaying every JSON config regenerates the committed CSVs and
+  # figure PDFs byte-for-byte.  Any drift makes the tree dirty and
+  # fails this job.
+  replay-bit-exact:
+    name: replay bit-exact vs committed artefacts (reference env)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Install pinned reference environment
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-paper.txt
+
+      - name: Replay the full attribution suite
+        run: |
+          python -m PRISM.replay --all paper/experiments/ --output paper/figures/
+          python -m PRISM.replay paper/experiments/supplementary/attr_qft4_bit_flip_T480.json --output paper/figures/supplementary
+
+      - name: Verify byte-identical outputs
+        shell: bash
+        run: |
+          git status --porcelain -- paper/
+          if [ -n "$(git status --porcelain -- paper/)" ]; then
+            echo "::error::Replay outputs differ from committed artefacts"
+            git diff --stat -- paper/
+            exit 1
+          fi
+          echo "All replay outputs are byte-identical to the committed artefacts."

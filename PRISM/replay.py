@@ -479,7 +479,7 @@ def _write_attribution_csv(path: Path, attr: NoiseAttribution) -> None:
     """Write the per-column statistics table for paper appendix."""
     stats = attr.statistics
     with path.open("w", encoding="utf-8", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")
         w.writerow([
             "column", "label",
             "delta_F_mean", "delta_F_ci_lower", "delta_F_ci_upper",

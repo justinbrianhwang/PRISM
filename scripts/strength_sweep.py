@@ -55,7 +55,7 @@ from PRISM.engine.noise import (  # noqa: E402
     DepolarizingNoise,
     NoiseModel,
 )
-from PRISM.figures import use_paper_style  # noqa: E402
+from PRISM.figures import save_figure, use_paper_style  # noqa: E402
 
 # Import the same factories the figure-generation script uses so the
 # circuit definitions stay in lock-step.
@@ -137,7 +137,7 @@ def run_sweep(
 def write_csv(rows: list[dict], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+        writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()), lineterminator="\n")
         writer.writeheader()
         for r in rows:
             writer.writerow({
@@ -218,8 +218,8 @@ def render_figure(
     )
 
     out_pdf.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(str(out_pdf), bbox_inches="tight", pad_inches=0.05)
-    fig.savefig(str(out_png), dpi=300, bbox_inches="tight", pad_inches=0.05)
+    save_figure(fig, str(out_pdf))
+    save_figure(fig, str(out_png))
     plt.close(fig)
 
 

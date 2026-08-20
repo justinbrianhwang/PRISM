@@ -47,7 +47,7 @@ from PRISM.engine.qec import (  # noqa: E402
     Shor9Code,
     SteaneCode,
 )
-from PRISM.figures import use_paper_style  # noqa: E402
+from PRISM.figures import save_figure, use_paper_style  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -129,7 +129,7 @@ def write_csv(
     """Tidy long-form CSV: one row per (code, rate, bin)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow([
             "code", "noise_type", "physical_rate", "n_trials",
             "bin", "count", "fraction",
@@ -242,8 +242,8 @@ def render_figure(
     fig.tight_layout(rect=(0, 0.04, 1, 1))
 
     path_pdf.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(str(path_pdf), bbox_inches="tight", pad_inches=0.05)
-    fig.savefig(str(path_png), dpi=300, bbox_inches="tight", pad_inches=0.05)
+    save_figure(fig, str(path_pdf))
+    save_figure(fig, str(path_png))
     plt.close(fig)
 
 

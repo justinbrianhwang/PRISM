@@ -118,7 +118,7 @@ def run_pair(
 def write_csv(path: Path, untwirled, twirled) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow([
             "column", "label",
             "untwirled_pct", "untwirled_q", "untwirled_significant",

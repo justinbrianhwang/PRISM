@@ -122,7 +122,7 @@ def main() -> None:
     # ------------------------------------------------------------------ CSV
     csv_out = summary_dir / "by_sensitivity.csv"
     with open(csv_out, "w", newline="") as fh:
-        writer = csv.writer(fh)
+        writer = csv.writer(fh, lineterminator="\n")
         writer.writerow(
             ["circuit", "noise", "n_columns", "sig_bh", "sig_by", "flipped"]
         )

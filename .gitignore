@@ -40,7 +40,7 @@ arxiv/
 /tex/
 paper.md
 deep-research-report.md
-revision_check.md
+revision_check*.md
 review_*.md
 adversarial_review.md
 

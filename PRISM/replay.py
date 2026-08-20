@@ -545,7 +545,12 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     p.add_argument(
         "--all", action="store_true",
-        help="Treat 'config' as a directory and replay every JSON inside.",
+        help=(
+            "Treat 'config' as a directory and replay every JSON inside. "
+            "The scan is non-recursive by design: configs in "
+            "subdirectories (e.g. paper/experiments/supplementary/) are "
+            "kept out of the main suite and must be replayed explicitly."
+        ),
     )
     p.add_argument(
         "--output", type=Path,
